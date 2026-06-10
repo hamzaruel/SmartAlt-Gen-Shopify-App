@@ -45,10 +45,12 @@ export default function AppLayout({ children }) {
     <>
       <s-app-nav>
         <s-link href={`/dashboard${qs}`} rel="home">
-          Dashboard
+          Overview
         </s-link>
-        <s-link href={`/images${qs}`}>Images</s-link>
-        <s-link href={`/generate${qs}`}>Generate</s-link>
+        <s-link href={`/images${qs}`}>Image audit</s-link>
+        <s-link href={`/generate${qs}`}>Alt text studio</s-link>
+        <s-link href={`/settings${qs}`}>Preferences</s-link>
+        <s-link href={`/help${qs}`}>Help center</s-link>
       </s-app-nav>
 
       <main className="min-h-screen bg-slate-50">

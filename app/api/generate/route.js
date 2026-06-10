@@ -48,7 +48,7 @@ export async function POST(request) {
     if (quotaHit) return;
     try {
       const alt = isAi
-        ? await generateWithGemini(item.url, buildContext(item), mode === 'ai_custom' ? instructions : '')
+        ? await generateWithGemini(item.url, buildContext(item), instructions)
         : generateRuleBased({ title: item.title, type: item.type, position: item.position });
       results.push({ key: item.key, suggestedAlt: alt });
     } catch (e) {

@@ -25,6 +25,7 @@ import {
 import { loadScan, patchImages } from '@/lib/scanStore';
 import { authHeaders } from '@/lib/sessionToken';
 import { sanitizeAlt } from '@/lib/sanitizeAlt';
+import { loadSettings } from '@/lib/settings';
 
 const TYPES = [
   { id: 'product', label: 'Product Images', icon: Package },
@@ -42,6 +43,25 @@ const TEMPLATES = [
   '[product_title]-[product_vendor]',
   '[product_title]-[product_type]-[product_vendor]',
 ];
+
+// Edit options shown in the dropdown, by image type. Blog/Post (and other non-product
+// types) don't have product type/vendor, so template / AI-custom don't apply there —
+// only AI (recommended) and the item's own title make sense.
+function editOptionsFor(type) {
+  if (type === 'article') {
+    return [
+      { value: 'ai', label: 'Generate alt text with AI (recommended)' },
+      { value: 'title', label: 'Use the post title as alt text' },
+    ];
+  }
+  return [
+    { value: 'title', label: 'Update alt-text with product title' },
+    { value: 'template', label: 'Update alt-text with a custom template' },
+    { value: 'ai', label: 'Use AI to generate alt-text' },
+    { value: 'ai_custom', label: 'Use AI with custom options' },
+    { value: 'remove', label: 'Remove alt-text' },
+  ];
+}
 
 // What context the merchant can feed the AI (only fields we actually have).
 const AI_INFO = [
@@ -78,13 +98,16 @@ function applyTemplate(tpl, img) {
   return sanitizeAlt(filled); // WCAG-clean: no quotes/special chars, word-boundary 120 cap
 }
 
-function SectionTitle({ icon: Icon, children }) {
+function SectionTitle({ icon: Icon, children, desc }) {
   return (
-    <div className="mb-3 flex items-center gap-2.5">
-      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
+    <div className="mb-3 flex items-start gap-2.5">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
         <Icon className="h-4 w-4" />
       </span>
-      <h2 className="text-sm font-semibold text-slate-800">{children}</h2>
+      <div>
+        <h2 className="text-sm font-semibold text-slate-800">{children}</h2>
+        {desc ? <p className="mt-0.5 text-sm text-slate-500">{desc}</p> : null}
+      </div>
     </div>
   );
 }
@@ -96,8 +119,32 @@ function Divider() {
 function Row({ label, value }) {
   return (
     <div className="flex gap-2">
-      <span className="w-24 shrink-0 text-slate-400">{label}</span>
+      <span className="w-24 shrink-0 text-slate-500">{label}</span>
       <span className="min-w-0 flex-1 break-words text-slate-700">{value}</span>
+    </div>
+  );
+}
+
+// Editable alt-text box used in the generated results — lets the merchant fix the
+// generated alt before embedding. Local state while typing; commits on blur.
+function EditableAlt({ img, onCommit }) {
+  const [val, setVal] = useState(img.suggestedAlt || '');
+  useEffect(() => {
+    setVal(img.suggestedAlt || '');
+  }, [img.suggestedAlt, img.key]);
+  return (
+    <div>
+      <textarea
+        value={val}
+        maxLength={120}
+        rows={2}
+        onChange={(e) => setVal(e.target.value)}
+        onBlur={() => {
+          if (val !== (img.suggestedAlt || '')) onCommit(img.key, val);
+        }}
+        className="w-full resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-indigo-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+      />
+      <p className="mt-0.5 text-right text-xs text-slate-500">{val.length}/120</p>
     </div>
   );
 }
@@ -134,6 +181,7 @@ export default function GeneratePage() {
   const [skipExisting, setSkipExisting] = useState(false);
   const [infoFields, setInfoFields] = useState(['title']); // AI custom: what to feed the model
   const [instructions, setInstructions] = useState('');
+  const [aiLanguage, setAiLanguage] = useState(''); // from Settings — language for AI alt text
 
   const [busy, setBusy] = useState(null);
   const [message, setMessage] = useState(null);
@@ -143,16 +191,33 @@ export default function GeneratePage() {
     setAllImages(loadScan(shop)?.images || []);
   }, [shop]);
 
+  // Save a manual edit to a generated alt (before embedding).
+  const commitEdit = useCallback((key, text) => {
+    patchImages(shop, { [key]: { suggestedAlt: text } });
+    refresh();
+  }, [shop, refresh]);
+
   useEffect(() => {
     refresh();
   }, [refresh]);
 
-  // Reset preview/page each time the merchant switches type.
+  // Seed defaults from saved Settings (AI language + instructions + skip-existing).
+  useEffect(() => {
+    const s = loadSettings(shop);
+    setAiLanguage(s.aiLanguage || '');
+    setInstructions(s.aiInstructions || '');
+    setSkipExisting(!!s.skipExisting);
+  }, [shop]);
+
+  // Reset preview/page/edit-choice each time the merchant switches type.
   useEffect(() => {
     setPage(0);
     setGenPage(0);
     setShowPreview(false);
+    setEditMode(''); // options differ per type, so start fresh
   }, [selected]);
+
+  const editOptions = editOptionsFor(selected);
 
   const noScan = !loadScan(shop);
   const countBySource = (src) => allImages.filter((i) => i.source === src).length;
@@ -198,10 +263,13 @@ export default function GeneratePage() {
         const items = editTargets.map((i) => ({
           key: i.key, source: i.source, url: i.url, title: i.title, type: i.type, vendor: i.vendor, position: i.position,
         }));
+        // prepend the chosen language (from Settings) to the instructions sent to AI
+        const langPrefix = aiLanguage ? `Write the alt text in ${aiLanguage}. ` : '';
+        const finalInstructions = `${langPrefix}${instructions || ''}`.trim();
         const res = await fetch(`/api/generate?shop=${encodeURIComponent(shop)}`, {
           method: 'POST',
           headers: await authHeaders({ 'Content-Type': 'application/json' }),
-          body: JSON.stringify({ mode: editMode, items, infoFields, instructions }),
+          body: JSON.stringify({ mode: editMode, items, infoFields, instructions: finalInstructions }),
         });
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
@@ -284,19 +352,19 @@ export default function GeneratePage() {
 
   return (
     <div className="space-y-8">
-      <header className="flex items-center gap-4 rounded-2xl bg-gradient-to-br from-indigo-50 to-white p-6">
+      <header className="animate-card-in flex items-center gap-4 rounded-2xl bg-gradient-to-br from-indigo-50 to-white p-6">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
           <Wand2 className="h-5 w-5" />
         </span>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Generate alt text</h1>
-          <p className="mt-0.5 text-sm text-slate-500">Pick an image type, choose how to edit, then generate &amp; embed.</p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Alt text studio</h1>
+          <p className="mt-0.5 text-sm text-slate-600">Pick an image type, choose how to edit, then generate &amp; embed.</p>
         </div>
       </header>
 
       {/* ===== 1 · Select type ===== */}
-      <section>
-        <SectionTitle icon={Layers} step="1">Select which type of images to edit</SectionTitle>
+      <section className="animate-fade-in">
+        <SectionTitle icon={Layers} desc="Choose which kind of images you want to work on. The number shows how many of each are in your store.">Select which type of images to edit</SectionTitle>
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex flex-wrap gap-2.5">
             {TYPES.map(({ id, label, icon: Icon }) => {
@@ -306,10 +374,10 @@ export default function GeneratePage() {
                 <button
                   key={id}
                   onClick={() => setSelected(active ? null : id)}
-                  className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition ${
+                  className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200 ease-out hover:-translate-y-0.5 active:scale-[0.97] ${
                     active
-                      ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md'
-                      : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                      ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/25'
+                      : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50 hover:shadow-sm'
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -335,7 +403,7 @@ export default function GeneratePage() {
       </section>
 
       {!selected ? (
-        <div className="flex items-start gap-3 rounded-xl bg-indigo-50 px-4 py-3 text-sm text-slate-600">
+        <div className="animate-fade-in flex items-start gap-3 rounded-2xl bg-indigo-50 px-4 py-3 text-sm text-slate-600">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" />
           <p>Pick an image type above to preview and edit its images.</p>
         </div>
@@ -344,8 +412,8 @@ export default function GeneratePage() {
       <Divider />
 
       {/* ===== 2 · Preview ===== */}
-          <section>
-            <SectionTitle icon={LayoutGrid} step="2">Preview matching images</SectionTitle>
+          <section className="animate-fade-in">
+            <SectionTitle icon={LayoutGrid} desc="See the images in this type and their current alt text before you make any changes.">Preview matching images</SectionTitle>
             <button
               onClick={() => setShowPreview((v) => !v)}
               disabled={!selected}
@@ -353,7 +421,7 @@ export default function GeneratePage() {
             >
               {showPreview ? <EyeOff className="h-4 w-4 text-indigo-500" /> : <Eye className="h-4 w-4 text-indigo-500" />}
               {showPreview ? 'Hide preview' : 'Show preview'}
-              <span className="text-slate-400">({matching.length})</span>
+              <span className="text-slate-500">({matching.length})</span>
             </button>
 
             {showPreview ? (
@@ -369,7 +437,7 @@ export default function GeneratePage() {
 
                   <div className="grid gap-4 sm:grid-cols-2">
                     {pageItems.map((img) => (
-                      <article key={img.key} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                      <article key={img.key} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow duration-300 hover:shadow-md">
                         <div className="flex h-44 items-center justify-center bg-slate-50 p-2">
                           <img src={img.url} alt={img.currentAlt || img.title} className="max-h-40 max-w-full object-contain" />
                         </div>
@@ -410,8 +478,8 @@ export default function GeneratePage() {
           <Divider />
 
           {/* ===== 3 · Edit ===== */}
-          <section>
-            <SectionTitle icon={Wand2} step="3">Edit matching images</SectionTitle>
+          <section className="animate-fade-in">
+            <SectionTitle icon={Wand2} desc="Choose how to create the alt text — a template, the item title, or AI.">Edit matching images</SectionTitle>
             <div className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">Choose how you want to edit</label>
@@ -421,11 +489,9 @@ export default function GeneratePage() {
                   className="w-full max-w-sm rounded-lg border border-slate-300 bg-white py-2 pl-3 pr-10 text-sm text-slate-800 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
                 >
                   <option value="" disabled>Choose how you want to edit…</option>
-                  <option value="title">Update alt-text with product title</option>
-                  <option value="template">Update alt-text with a custom template</option>
-                  <option value="ai">Use AI to generate alt-text</option>
-                  <option value="ai_custom">Use AI with custom options</option>
-                  <option value="remove">Remove alt-text</option>
+                  {editOptions.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
                 </select>
               </div>
 
@@ -463,7 +529,7 @@ export default function GeneratePage() {
                       className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
                   ) : null}
 
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500">
                     Placeholders: <code>[product_title]</code> <code>[product_type]</code> <code>[product_vendor]</code>. Empty ones are skipped.
                   </p>
                 </div>
@@ -486,14 +552,14 @@ export default function GeneratePage() {
                             onChange={(e) => setInfoFields((f) => (e.target.checked ? [...f, id] : f.filter((x) => x !== id)))}
                             className="h-4 w-4 rounded border-slate-300 accent-indigo-600" />
                           <span className="text-slate-700">{label}</span>
-                          {always ? <span className="ml-auto text-xs text-slate-400">always</span> : null}
+                          {always ? <span className="ml-auto text-xs text-slate-500">always</span> : null}
                         </label>
                       );
                     })}
                   </div>
                   <div>
                     <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                      Special instructions <span className="font-normal text-slate-400">(optional)</span>
+                      Special instructions <span className="font-normal text-slate-500">(optional)</span>
                     </label>
                     <textarea value={instructions} onChange={(e) => setInstructions(e.target.value)} rows={2}
                       placeholder="e.g. Write in English. Mention colour and material"
@@ -503,7 +569,7 @@ export default function GeneratePage() {
               ) : editMode === 'remove' ? (
                 <p className="text-sm text-slate-500">This clears the existing alt-text from the selected images in Shopify.</p>
               ) : (
-                <p className="text-sm text-slate-400">Select an option above to continue.</p>
+                <p className="text-sm text-slate-500">Select an option above to continue.</p>
               )}
 
               {editMode && editMode !== 'remove' ? (
@@ -524,7 +590,7 @@ export default function GeneratePage() {
           <button
             onClick={clearAlt}
             disabled={busy !== null || removeTargets.length === 0}
-            className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-rose-500/20 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:bg-rose-700 hover:shadow-lg hover:shadow-rose-500/40 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
           >
             {busy === 'generate' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
             Clear alt-text{removeTargets.length ? ` (${removeTargets.length})` : ''}
@@ -533,16 +599,19 @@ export default function GeneratePage() {
           <button
             onClick={generate}
             disabled={busy !== null || !editMode || editTargets.length === 0 || (editMode === 'template' && !activeTemplate.trim())}
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+            className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-500/20 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/40 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-md"
           >
-            {busy === 'generate' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
-            Generate{editTargets.length ? ` (${editTargets.length})` : ''}
+            <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
+            <span className="relative flex items-center gap-2">
+              {busy === 'generate' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+              Generate{editTargets.length ? ` (${editTargets.length})` : ''}
+            </span>
           </button>
         )}
 
         {/* messages appear here — below the action, not at the top */}
         {message ? (
-          <div className="mt-3 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 shadow-sm">
+          <div className="mt-3 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 shadow-sm">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
               <CheckCircle2 className="h-4 w-4" />
             </span>
@@ -551,7 +620,7 @@ export default function GeneratePage() {
           </div>
         ) : null}
         {error ? (
-          <div className="mt-3 flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 shadow-sm">
+          <div className="mt-3 flex items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 shadow-sm">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-600">
               <AlertCircle className="h-4 w-4" />
             </span>
@@ -563,8 +632,8 @@ export default function GeneratePage() {
 
       {/* ===== Generated results ===== */}
       {generated.length > 0 ? (
-        <section>
-          <SectionTitle icon={CheckCircle2}>Generated alt text</SectionTitle>
+        <section className="animate-fade-in">
+          <SectionTitle icon={CheckCircle2} desc="Review and tweak the alt text, then embed it into Shopify.">Generated alt text</SectionTitle>
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-slate-700">
               {generated.length} ready to embed
@@ -576,17 +645,16 @@ export default function GeneratePage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             {genItems.map((img) => (
-              <article key={img.key} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <article key={img.key} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow duration-300 hover:shadow-md">
                 <div className="flex h-40 items-center justify-center bg-slate-50 p-2">
                   <img src={img.url} alt={img.suggestedAlt || img.title} className="max-h-36 max-w-full object-contain" />
                 </div>
-                <div className="space-y-1.5 p-4 text-sm">
+                <div className="space-y-2 p-4 text-sm">
                   <Row label={OWNER_LABEL[img.source] || 'Title'} value={img.title} />
-                  <div className="flex gap-2">
-                    <span className="w-24 shrink-0 text-slate-400">New alt</span>
-                    <span className="min-w-0 flex-1 break-words font-medium text-indigo-700">{img.suggestedAlt}</span>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">New alt — edit if needed</label>
+                    <EditableAlt img={img} onCommit={commitEdit} />
                   </div>
-                  <p className="text-right text-xs text-slate-400">{(img.suggestedAlt || '').length}/120</p>
                 </div>
               </article>
             ))}
@@ -599,7 +667,7 @@ export default function GeneratePage() {
             <button
               onClick={apply}
               disabled={busy !== null || !hasSuggestions}
-              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-500/20 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:bg-emerald-700 hover:shadow-lg hover:shadow-emerald-500/40 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
             >
               {busy === 'apply' ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
               Embed all ({generated.length})
@@ -611,7 +679,7 @@ export default function GeneratePage() {
       <Divider />
 
       {/* ===== Note ===== */}
-      <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
+      <div className="animate-fade-in rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
         <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
           <Info className="h-4 w-4 text-indigo-500" /> Good to know
         </div>

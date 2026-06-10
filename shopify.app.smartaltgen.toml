@@ -1,6 +1,6 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "e03a0742155c3be6f696862ecc42daad"
+client_id = "b10241a4d21315935f4ba147f5d5754a"
 name = "SmartAltGen"
 application_url = "https://example.com"
 embedded = true
@@ -8,24 +8,14 @@ embedded = true
 [webhooks]
 api_version = "2026-01"
 
-# NOTE: GDPR compliance webhook subscriptions need a PUBLIC https URL, so they
-# are disabled for `--use-localhost` dev. Re-enable before production deploy
-# (with a public app URL) by uncommenting the block below:
-#
-#   [[webhooks.subscriptions]]
-#   uri = "/api/webhooks"
-#   compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
-
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_products,write_products,read_files,write_files,read_content,write_content"
+scopes = "read_files,write_files,read_products,write_products,read_content,write_content"
 optional_scopes = [ ]
 use_legacy_install_flow = false
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth/callback" ]
+redirect_urls = [ ]
 
 [build]
-# Let `shopify app dev` rewrite application_url + redirect_urls to the tunnel URL
 automatically_update_urls_on_dev = true
-include_config_on_deploy = true

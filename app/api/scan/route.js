@@ -1,13 +1,17 @@
 import { NextResponse } from 'next/server';
 import { getShopToken } from '@/lib/serverAuth';
-import { getAllImages } from '@/lib/shopifyAdmin';
+import { scanPacket } from '@/lib/shopifyAdmin';
 import { classify } from '@/lib/classify';
 
 export const dynamic = 'force-dynamic';
 
 // POST /api/scan?shop=...
-// Live-fetch every image (products, files, blog articles), classify, and
-// return them. Nothing is persisted server-side — the client caches the result.
+// Packet-based scan: each call fetches ONE bounded packet of images and returns
+// a `next` pointer for the following call (or null when the whole store is done).
+// The client loops until done, so no single request times out — this keeps the
+// scan safe for large/enterprise stores. Nothing is persisted server-side; the
+// client accumulates the packets and caches the result.
+// body: { state?: { source, cursor } | null }  ← pass back the previous `next`.
 export async function POST(request) {
   const shop = new URL(request.url).searchParams.get('shop');
   if (!shop) return NextResponse.json({ error: 'Missing shop' }, { status: 400 });
@@ -15,16 +19,18 @@ export async function POST(request) {
   const token = await getShopToken(request, shop);
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  try {
-    const items = await getAllImages(shop, token);
+  const body = await request.json().catch(() => ({}));
+  const state = body?.state || null;
+  // optional: limit which sources are scanned (from the merchant's Settings)
+  const allowedSources = Array.isArray(body?.allowedSources) && body.allowedSources.length
+    ? body.allowedSources
+    : undefined;
 
-    const stats = { total: 0, missing: 0, needsImprovement: 0, optimized: 0 };
+  try {
+    const { items, next } = await scanPacket(shop, token, state, allowedSources);
+
     const images = items.map((item) => {
       const { status, reason } = classify(item.alt);
-      stats.total += 1;
-      if (status === 'MISSING') stats.missing += 1;
-      else if (status === 'NEEDS_IMPROVEMENT') stats.needsImprovement += 1;
-      else stats.optimized += 1;
       return {
         key: `${item.source}:${item.id}`,
         source: item.source,
@@ -45,7 +51,7 @@ export async function POST(request) {
       };
     });
 
-    return NextResponse.json({ success: true, images, stats });
+    return NextResponse.json({ success: true, images, next, done: !next });
   } catch (e) {
     console.error('❌ Scan failed:', e);
     return NextResponse.json({ error: e.message || 'Scan failed' }, { status: 500 });

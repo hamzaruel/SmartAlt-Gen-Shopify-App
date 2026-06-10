@@ -1,0 +1,135 @@
+'use client';
+
+import { useState } from 'react';
+import { LifeBuoy, ChevronDown, Mail, Clock, ShieldCheck } from 'lucide-react';
+
+const SUPPORT_EMAIL = 'support@ecomback.com';
+
+const FAQS = [
+  {
+    q: 'What does SmartAltGen do?',
+    a: 'It scans every image in your store and generates clear, WCAG-friendly alt text, then saves it back to Shopify — so screen readers can describe your images and your image SEO improves.',
+  },
+  {
+    q: 'What is alt text and why does it matter?',
+    a: 'Alt text is a short written description of an image. Screen readers read it aloud for shoppers who can’t see the image, and search engines use it to understand your visuals. Clear alt text is also part of WCAG accessibility guidelines.',
+  },
+  {
+    q: 'Which images does it scan?',
+    a: 'Product gallery images, your Files library, blog post images, and collection cover images.',
+  },
+  {
+    q: 'What’s the difference between Template and AI?',
+    a: 'Template builds the alt text instantly from details you already have, like the product title, and is free to use. AI looks at the actual image and writes a natural description of what it sees.',
+  },
+  {
+    q: 'Will this change my actual images?',
+    a: 'No. SmartAltGen only updates the alt text — your images, files and products themselves are never modified.',
+  },
+  {
+    q: 'Do you store my images?',
+    a: 'No. Images are read live from Shopify each time you scan. We only store your store’s secure access token so the app can work — nothing else.',
+  },
+  {
+    q: 'How long is the generated alt text?',
+    a: 'Always under 120 characters, with no quotes or stray symbols — kept concise the way WCAG recommends.',
+  },
+  {
+    q: 'Can I edit the alt text before saving?',
+    a: 'Yes. After generating, you can edit any alt text in the results, then click “Embed all” to save your version to Shopify.',
+  },
+  {
+    q: 'How do I remove alt text?',
+    a: 'On the Generate page, pick the image type and choose “Remove alt-text”, then confirm.',
+  },
+];
+
+function FaqItem({ item, open, onToggle, delay }) {
+  return (
+    <div className="animate-fade-in overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" style={{ animationDelay: `${delay}ms` }}>
+      <button
+        onClick={onToggle}
+        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition-colors hover:bg-slate-50"
+      >
+        <span className="text-sm font-semibold text-slate-800">{item.q}</span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-indigo-500 transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
+      </button>
+      <div
+        className="grid transition-all duration-300 ease-out"
+        style={{ gridTemplateRows: open ? '1fr' : '0fr' }}
+      >
+        <div className="overflow-hidden">
+          <p className="px-5 pb-4 text-sm leading-relaxed text-slate-600">{item.a}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function HelpPage() {
+  const [openIndex, setOpenIndex] = useState(0);
+
+  return (
+    <div className="space-y-8">
+      {/* ===== Header ===== */}
+      <header className="animate-card-in flex items-center gap-4 rounded-2xl bg-gradient-to-br from-indigo-50 to-white p-6">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
+          <LifeBuoy className="h-5 w-5" />
+        </span>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Help center</h1>
+          <p className="mt-0.5 text-sm text-slate-600">Answers to common questions, and how to reach us.</p>
+        </div>
+      </header>
+
+      {/* ===== FAQ ===== */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Frequently asked questions</h2>
+        {FAQS.map((item, i) => (
+          <FaqItem
+            key={item.q}
+            item={item}
+            open={openIndex === i}
+            onToggle={() => setOpenIndex(openIndex === i ? -1 : i)}
+            delay={i * 50}
+          />
+        ))}
+      </section>
+
+      {/* ===== Support ===== */}
+      <section className="animate-fade-in overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-indigo-50 to-white shadow-sm">
+        <div className="p-6">
+          <div className="flex items-center gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-indigo-600 shadow-sm ring-1 ring-slate-100">
+              <Mail className="h-5 w-5" />
+            </span>
+            <div>
+              <h2 className="text-base font-semibold text-slate-800">Still need help?</h2>
+              <p className="mt-0.5 text-sm text-slate-600">Our team is happy to help with anything about SmartAltGen.</p>
+            </div>
+          </div>
+
+          <a
+            href={`mailto:${SUPPORT_EMAIL}?subject=SmartAltGen support`}
+            className="group relative mt-5 inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-indigo-500/20 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/40 active:translate-y-0 active:scale-[0.98]"
+          >
+            <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
+            <span className="relative flex items-center gap-2">
+              <Mail className="h-4 w-4" />
+              Email {SUPPORT_EMAIL}
+            </span>
+          </a>
+
+          <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 border-t border-slate-200/70 pt-4 text-sm text-slate-600">
+            <span className="inline-flex items-center gap-2">
+              <Clock className="h-4 w-4 text-indigo-500" /> We usually reply within 24 hours
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-indigo-500" /> We never modify your products or images
+            </span>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}

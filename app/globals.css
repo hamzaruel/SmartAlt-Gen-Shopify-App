@@ -152,6 +152,32 @@ code {
 .animate-scan {
   animation: scan-orbit 1.1s linear infinite;
 }
+/* Indeterminate progress bar: a short segment sweeps left→right repeatedly,
+   used while scanning when the final total isn't known yet. */
+@keyframes scanbar-sweep {
+  0%   { transform: translateX(-120%); }
+  100% { transform: translateX(420%); }
+}
+.animate-scanbar {
+  animation: scanbar-sweep 1.2s ease-in-out infinite;
+}
+/* Card entrance: soft fade + rise. `both` keeps it hidden until its stagger
+   delay, so the stat cards reveal one after another when the overview mounts. */
+@keyframes card-in {
+  0%   { opacity: 0; transform: translateY(14px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.animate-card-in {
+  animation: card-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+/* Opacity-only entrance — leaves `transform` free so hover lift/scale still works. */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out both;
+}
 /* ===== Desktop (default) ===== */
 .sitemap-logo-wrapper {
   position: absolute;
