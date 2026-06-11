@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { loadScan, patchImages } from '@/lib/scanStore';
 import { authHeaders } from '@/lib/sessionToken';
+import { BASE_PATH } from '@/lib/basePath';
 import { sanitizeAlt } from '@/lib/sanitizeAlt';
 import { loadSettings } from '@/lib/settings';
 import { logActivity } from '@/lib/activity';
@@ -281,7 +282,7 @@ export default function GeneratePage() {
 
         for (let i = 0; i < items.length; i += CHUNK) {
           const batch = items.slice(i, i + CHUNK);
-          const res = await fetch(`/api/generate?shop=${encodeURIComponent(shop)}`, {
+          const res = await fetch(`${BASE_PATH}/api/generate?shop=${encodeURIComponent(shop)}`, {
             method: 'POST',
             headers,
             body: JSON.stringify({ mode: editMode, items: batch, infoFields, instructions: finalInstructions }),
@@ -328,7 +329,7 @@ export default function GeneratePage() {
       const items = allImages
         .filter((i) => i.suggestedAlt && i.source === selected)
         .map((i) => ({ key: i.key, source: i.source, id: i.id, url: i.url, alt: i.suggestedAlt }));
-      const res = await fetch(`/api/apply?shop=${encodeURIComponent(shop)}`, {
+      const res = await fetch(`${BASE_PATH}/api/apply?shop=${encodeURIComponent(shop)}`, {
         method: 'POST',
         headers: await authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ items }),
@@ -362,7 +363,7 @@ export default function GeneratePage() {
         setMessage('No alt text to remove here.');
         return;
       }
-      const res = await fetch(`/api/apply?shop=${encodeURIComponent(shop)}`, {
+      const res = await fetch(`${BASE_PATH}/api/apply?shop=${encodeURIComponent(shop)}`, {
         method: 'POST',
         headers: await authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ items, allowEmpty: true }),

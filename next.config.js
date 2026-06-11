@@ -92,10 +92,14 @@
 // module.exports = nextConfig;
 
 
-// test version for middleware 
+// test version for middleware
+// Production (VPS behind nginx) serves the app under a subpath, set via
+// NEXT_PUBLIC_BASE_PATH (e.g. "/smart-alt-gen"). Local `shopify app dev` leaves
+// it unset, so the app serves at root and the dev tunnel keeps working.
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+
 const nextConfig = {
-  // basePath/assetPrefix removed: SmartAltGen serves at root so `shopify app dev`
-  // tunnel (which points at root) loads the embedded app correctly.
+  ...(basePath ? { basePath, assetPrefix: basePath } : {}),
   output: 'standalone',
   experimental: {
     outputFileTracingIncludes: {

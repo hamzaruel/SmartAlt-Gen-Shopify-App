@@ -35,6 +35,7 @@ const SOURCES = [
 ];
 import { loadScan, saveScan } from '@/lib/scanStore';
 import { authHeaders } from '@/lib/sessionToken';
+import { BASE_PATH } from '@/lib/basePath';
 import { loadSettings } from '@/lib/settings';
 import { loadActivity, logActivity, relativeTime } from '@/lib/activity';
 
@@ -127,7 +128,7 @@ export default function DashboardPage() {
       const headers = { ...(await authHeaders()), 'Content-Type': 'application/json' };
       let guard = 0;
       do {
-        const res = await fetch(`/api/scan?shop=${encodeURIComponent(shop)}`, {
+        const res = await fetch(`${BASE_PATH}/api/scan?shop=${encodeURIComponent(shop)}`, {
           method: 'POST',
           headers,
           body: JSON.stringify({ state, allowedSources }),

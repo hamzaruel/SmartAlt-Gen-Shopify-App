@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { BASE_PATH } from '@/lib/basePath';
 
 // Custom Tailwind/shadcn shell. Navigation uses App Bridge's <s-app-nav> + <s-link>
 // (rendered into the Shopify admin left nav when embedded). shop/host are kept on
@@ -19,12 +20,12 @@ export default function AppLayout({ children }) {
       setIsCheckingAuth(false);
       return;
     }
-    fetch(`/api/check-auth?shop=${shop}`)
+    fetch(`${BASE_PATH}/api/check-auth?shop=${shop}`)
       .then((res) => res.json())
       .then((data) => {
         if (!data.authorized) {
           console.log('🔐 Not authorized → redirecting to OAuth');
-          window.open(`/api/auth?shop=${shop}`, '_top');
+          window.open(`${BASE_PATH}/api/auth?shop=${shop}`, '_top');
           return;
         }
         console.log('✅ Authorized');
@@ -44,13 +45,13 @@ export default function AppLayout({ children }) {
   return (
     <>
       <s-app-nav>
-        <s-link href={`/dashboard${qs}`} rel="home">
+        <s-link href={`${BASE_PATH}/dashboard${qs}`} rel="home">
           Overview
         </s-link>
-        <s-link href={`/images${qs}`}>Image audit</s-link>
-        <s-link href={`/generate${qs}`}>Alt text studio</s-link>
-        <s-link href={`/settings${qs}`}>Preferences</s-link>
-        <s-link href={`/help${qs}`}>Help center</s-link>
+        <s-link href={`${BASE_PATH}/images${qs}`}>Image audit</s-link>
+        <s-link href={`${BASE_PATH}/generate${qs}`}>Alt text studio</s-link>
+        <s-link href={`${BASE_PATH}/settings${qs}`}>Preferences</s-link>
+        <s-link href={`${BASE_PATH}/help${qs}`}>Help center</s-link>
       </s-app-nav>
 
       <main className="min-h-screen bg-slate-50">

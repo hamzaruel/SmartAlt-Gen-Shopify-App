@@ -162,6 +162,7 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { storeShop } from '@/lib/db';
 import { resolveAppUrl } from '@/lib/appUrl';
+import { BASE_PATH } from '@/lib/basePath';
 
 export const dynamic = 'force-dynamic';
 //new one test
@@ -241,15 +242,20 @@ if (!savedState || savedState !== state) {
       .update(message)
       .digest('hex');
 
-   // if (generatedHash !== hmac) {
-     // console.error('❌ HMAC mismatch');
-     // return NextResponse.json({ error: 'Invalid HMAC' }, { status: 403 });
-   // }
+    // Constant-time compare (avoids timing leaks), with a length guard since
+    // crypto.timingSafeEqual throws on differing buffer lengths.
+    const hmacValid =
+      typeof hmac === 'string' &&
+      hmac.length === generatedHash.length &&
+      crypto.timingSafeEqual(
+        Buffer.from(generatedHash, 'utf8'),
+        Buffer.from(hmac, 'utf8'),
+      );
 
-if (generatedHash !== hmac) {
-  console.log('⚠️ HMAC mismatch - redirecting');
-  return NextResponse.redirect(`https://${shop}/admin/apps`);
-}
+    if (!hmacValid) {
+      console.log('⚠️ HMAC mismatch - redirecting');
+      return NextResponse.redirect(`https://${shop}/admin/apps`);
+    }
 
 
     console.log('✅ HMAC verified');
@@ -347,7 +353,7 @@ if (generatedHash !== hmac) {
     try {
     // const webhookUrl = `${process.env.SHOPIFY_HOST}/sitemap-explorer/api/webhooks/app-uninstalled`;
 
-const webhookUrl = `${resolveAppUrl(request)}/api/webhooks/app-uninstalled`;
+const webhookUrl = `${resolveAppUrl(request)}${BASE_PATH}/api/webhooks/app-uninstalled`;
 
 
       console.log('🔔 Registering webhook:', webhookUrl);

@@ -66,6 +66,7 @@
 import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 import { resolveAppUrl } from '@/lib/appUrl';
+import { BASE_PATH } from '@/lib/basePath';
 
 export const dynamic = 'force-dynamic';
 
@@ -116,7 +117,7 @@ export async function GET(request) {
   // const redirectUri = `${cleanHost}/api/auth/callback`;
  // const redirectUri = `${cleanHost}/sitemap-explorer/api/auth/callback`;
 
-const redirectUri = `${cleanHost}/api/auth/callback`;
+const redirectUri = `${cleanHost}${BASE_PATH}/api/auth/callback`;
 
   console.log('🔗 Redirect URI:', redirectUri);
 
