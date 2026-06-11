@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { BASE_PATH } from '@/lib/basePath';
 
@@ -13,34 +13,24 @@ export default function AppLayout({ children }) {
   const host = searchParams.get('host');
   const qs = `?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}`;
 
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-
+  // Verify the shop is authorized in the BACKGROUND so the page renders instantly
+  // on every navigation — no blocking "Authorizing app…" screen. We only redirect
+  // to OAuth on a genuine first-run (not installed yet), and cache the result for
+  // the session so we don't re-check (or flash) on each page.
   useEffect(() => {
-    if (!shop) {
-      setIsCheckingAuth(false);
-      return;
-    }
+    if (!shop) return;
+    if (sessionStorage.getItem(`smartaltgen:auth:${shop}`) === '1') return;
     fetch(`${BASE_PATH}/api/check-auth?shop=${shop}`)
       .then((res) => res.json())
       .then((data) => {
         if (!data.authorized) {
-          console.log('🔐 Not authorized → redirecting to OAuth');
           window.open(`${BASE_PATH}/api/auth?shop=${shop}`, '_top');
           return;
         }
-        console.log('✅ Authorized');
-        setIsCheckingAuth(false);
+        sessionStorage.setItem(`smartaltgen:auth:${shop}`, '1');
       })
-      .catch(() => setIsCheckingAuth(false));
+      .catch(() => {});
   }, [shop]);
-
-  if (isCheckingAuth) {
-    return (
-      <div className="flex min-h-screen items-center justify-center text-sm text-gray-500">
-        Authorizing app…
-      </div>
-    );
-  }
 
   return (
     <>
