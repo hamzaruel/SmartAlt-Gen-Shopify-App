@@ -106,9 +106,10 @@ export async function GET(request) {
     });
   } catch (error) {
     console.error('❌ Auth check error:', error);
-    return NextResponse.json({ 
-      authorized: false, 
-      error: error.message || 'Auth check failed' 
+    // Generic message — don't surface internal error details to the client.
+    return NextResponse.json({
+      authorized: false,
+      error: 'Auth check failed'
     }, { status: 500 });
   }
 }

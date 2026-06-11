@@ -279,10 +279,8 @@ if (!savedState || savedState !== state) {
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
       console.error('❌ Token exchange failed:', errorText);
-      return NextResponse.json({ 
-        error: 'Token exchange failed',
-        details: errorText 
-      }, { status: 500 });
+      // Don't leak internals to the browser — send the merchant back to their apps.
+      return NextResponse.redirect(`https://${shop}/admin/apps`);
     }
 
     const tokenData = await tokenResponse.json();
@@ -422,9 +420,10 @@ return response;
  catch (error) {
     console.error('❌ FATAL ERROR in callback:', error);
     console.error('Stack:', error.stack);
-    return NextResponse.json({ 
-      error: error.message,
-      stack: error.stack 
-    }, { status: 500 });
+    // Never expose stack traces / internals to the browser. Redirect cleanly so a
+    // mid-install failure doesn't surface a raw error page to the merchant.
+    return NextResponse.redirect(
+      shop ? `https://${shop}/admin/apps` : 'https://admin.shopify.com',
+    );
   }
 }
