@@ -231,7 +231,7 @@ export default function DashboardPage() {
           <p>
             <span className="font-semibold">{disabledLabels.join(', ')}</span>{' '}
             {disabledLabels.length === 1 ? 'is' : 'are'} turned off in Settings, so {disabledLabels.length === 1 ? 'its' : 'their'} images aren’t scanned.{' '}
-            <a href={`/settings${qs}`} className="font-semibold text-amber-900 underline underline-offset-2 hover:text-amber-950">
+            <a href={`${BASE_PATH}/settings${qs}`} className="font-semibold text-amber-900 underline underline-offset-2 hover:text-amber-950">
               Manage in Settings
             </a>
           </p>
@@ -368,7 +368,7 @@ export default function DashboardPage() {
           {/* View all images — outside the card */}
           <div className="flex flex-col items-center gap-2.5 text-center">
             <a
-              href={`/images${qs}`}
+              href={`${BASE_PATH}/images${qs}`}
               className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-7 py-3 text-sm font-semibold text-white shadow-md shadow-indigo-500/20 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/40 active:translate-y-0 active:scale-[0.98]"
             >
               {/* light sheen that sweeps across on hover */}

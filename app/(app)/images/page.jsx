@@ -16,6 +16,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { loadScan } from '@/lib/scanStore';
+import { BASE_PATH } from '@/lib/basePath';
 
 const PAGE_SIZE = 12;
 
@@ -277,7 +278,7 @@ export default function ImagesPage() {
           {/* ===== Generate CTA ===== */}
           <div className="animate-card-in flex flex-col items-center gap-2.5 border-t border-slate-100 pt-8 text-center">
             <a
-              href={`/generate${qs}`}
+              href={`${BASE_PATH}/generate${qs}`}
               className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-7 py-3 text-sm font-semibold text-white shadow-md shadow-indigo-500/20 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/40 active:translate-y-0 active:scale-[0.98]"
             >
               <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
@@ -307,7 +308,7 @@ function EmptyState({ shop }) {
         Run a scan from the Dashboard to detect your store’s images.
       </p>
       <a
-        href={`/dashboard${qs}`}
+        href={`${BASE_PATH}/dashboard${qs}`}
         className="mt-4 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
       >
         Go to Dashboard
