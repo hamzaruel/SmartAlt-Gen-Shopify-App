@@ -21,6 +21,10 @@ import {
   BookOpen,
   FileText,
   SlidersHorizontal,
+  Trash2,
+  Clock,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 const SOURCES = [
@@ -32,6 +36,7 @@ const SOURCES = [
 import { loadScan, saveScan } from '@/lib/scanStore';
 import { authHeaders } from '@/lib/sessionToken';
 import { loadSettings } from '@/lib/settings';
+import { loadActivity, logActivity, relativeTime } from '@/lib/activity';
 
 const STEPS = [
   { title: 'Scan', text: 'Find every image across products, collections, blogs and files, and see which need alt text.', icon: Search, ring: 'bg-sky-100 text-sky-600' },
@@ -43,6 +48,13 @@ const STEPS = [
 function Divider() {
   return <div className="h-px w-full bg-gradient-to-r from-transparent via-slate-200 to-transparent" />;
 }
+
+const ACTIVITY_META = {
+  scan:     { icon: ScanLine,    chip: 'bg-sky-100 text-sky-600',         text: (a) => `Scanned your store, ${(a.count || 0).toLocaleString()} image${a.count === 1 ? '' : 's'} found` },
+  generate: { icon: Wand2,       chip: 'bg-violet-100 text-violet-600',   text: (a) => `Generated alt text for ${a.count} image${a.count === 1 ? '' : 's'}` },
+  embed:    { icon: UploadCloud, chip: 'bg-emerald-100 text-emerald-600', text: (a) => `Saved alt text to ${a.count} image${a.count === 1 ? '' : 's'} in Shopify` },
+  clear:    { icon: Trash2,      chip: 'bg-rose-100 text-rose-600',       text: (a) => `Cleared alt text from ${a.count} image${a.count === 1 ? '' : 's'}` },
+};
 
 const easeOutCubic = (x) => 1 - Math.pow(1 - x, 3);
 
@@ -79,10 +91,13 @@ export default function DashboardPage() {
   const [scanCount, setScanCount] = useState(0); // live "images found so far" while scanning
   const [error, setError] = useState(null);
   const [disabledLabels, setDisabledLabels] = useState([]); // sources turned off in Settings
+  const [activity, setActivity] = useState([]); // recent activity log (newest-first)
+  const [actPage, setActPage] = useState(0);    // activity pagination
 
   useEffect(() => {
     const enabled = loadSettings(shop).scanSources;
     setDisabledLabels(SOURCES.filter((s) => !enabled.includes(s.id)).map((s) => s.label));
+    setActivity(loadActivity(shop));
   }, [shop]);
 
   // 0→1 fill progress, restarts on each scan (and when cached results first appear)
@@ -129,6 +144,8 @@ export default function DashboardPage() {
       setStats(saved.stats);
       setImages(all);
       setScannedAt(saved.scannedAt);
+      logActivity(shop, { type: 'scan', count: all.length });
+      setActivity(loadActivity(shop));
     } catch (e) {
       setError(e.message || 'Scan failed');
     } finally {
@@ -152,6 +169,13 @@ export default function DashboardPage() {
     const miss = imgs.filter((i) => i.status === 'MISSING').length;
     return { ...s, total: imgs.length, withAlt: imgs.length - miss };
   }).filter((s) => s.total > 0);
+
+  // Activity: stored newest-first; show 5 per page and display each page oldest→newest
+  // (top to bottom), so a page reads in the order things happened.
+  const ACT_PAGE = 5;
+  const actTotalPages = Math.max(1, Math.ceil(activity.length / ACT_PAGE));
+  const actSafe = Math.min(actPage, actTotalPages - 1);
+  const actItems = activity.slice(actSafe * ACT_PAGE, actSafe * ACT_PAGE + ACT_PAGE).slice().reverse();
 
   return (
     <div className="space-y-10">
@@ -356,6 +380,65 @@ export default function DashboardPage() {
             </a>
             <p className="text-sm text-slate-600">Browse every image in your store and review its alt text.</p>
           </div>
+        </>
+      ) : null}
+
+      {/* ===== Recent activity ===== */}
+      {activity.length ? (
+        <>
+          <Divider />
+          <section>
+            <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+              <Clock className="h-4 w-4" /> Recent activity
+            </h2>
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+              <ol>
+                {actItems.map((a, i, arr) => {
+                  const meta = ACTIVITY_META[a.type] || ACTIVITY_META.scan;
+                  const Icon = meta.icon;
+                  const last = i === arr.length - 1;
+                  return (
+                    <li key={a.ts} className="animate-fade-in relative flex gap-4 pb-5 last:pb-0" style={{ animationDelay: `${i * 60}ms` }}>
+                      {!last ? <span className="absolute left-5 top-11 bottom-0 w-px bg-slate-200" /> : null}
+                      <span className={`relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${meta.chip}`}>
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0 flex-1 pt-1.5">
+                        <p className="text-sm font-medium text-slate-800">{meta.text(a)}</p>
+                        <p className="mt-0.5 text-xs text-slate-500">
+                          {relativeTime(a.ts)} <span className="text-slate-300">·</span> {new Date(a.ts).toLocaleString()}
+                        </p>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+
+              {actTotalPages > 1 ? (
+                <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-4">
+                  <span className="text-xs text-slate-500">
+                    {activity.length} total <span className="text-slate-300">·</span> page {actSafe + 1} of {actTotalPages}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setActPage((p) => Math.max(0, p - 1))}
+                      disabled={actSafe === 0}
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-40"
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5" /> Newer
+                    </button>
+                    <button
+                      onClick={() => setActPage((p) => Math.min(actTotalPages - 1, p + 1))}
+                      disabled={actSafe >= actTotalPages - 1}
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-40"
+                    >
+                      Older <ChevronRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </section>
         </>
       ) : null}
 

@@ -26,6 +26,7 @@ import { loadScan, patchImages } from '@/lib/scanStore';
 import { authHeaders } from '@/lib/sessionToken';
 import { sanitizeAlt } from '@/lib/sanitizeAlt';
 import { loadSettings } from '@/lib/settings';
+import { logActivity } from '@/lib/activity';
 
 const TYPES = [
   { id: 'product', label: 'Product Images', icon: Package },
@@ -186,6 +187,7 @@ export default function GeneratePage() {
   const [busy, setBusy] = useState(null);
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
+  const [genProgress, setGenProgress] = useState(null); // { done, total } while AI generating
 
   const refresh = useCallback(() => {
     setAllImages(loadScan(shop)?.images || []);
@@ -258,6 +260,7 @@ export default function GeneratePage() {
         for (const img of editTargets) patch[img.key] = { suggestedAlt: applyTemplate(tpl, img) };
         patchImages(shop, patch);
         refresh();
+        logActivity(shop, { type: 'generate', count: editTargets.length, method: editMode });
         setMessage('Alt text generated. Click “Embed all” to apply.');
       } else if (editMode === 'ai' || editMode === 'ai_custom') {
         const items = editTargets.map((i) => ({
@@ -266,24 +269,54 @@ export default function GeneratePage() {
         // prepend the chosen language (from Settings) to the instructions sent to AI
         const langPrefix = aiLanguage ? `Write the alt text in ${aiLanguage}. ` : '';
         const finalInstructions = `${langPrefix}${instructions || ''}`.trim();
-        const res = await fetch(`/api/generate?shop=${encodeURIComponent(shop)}`, {
-          method: 'POST',
-          headers: await authHeaders({ 'Content-Type': 'application/json' }),
-          body: JSON.stringify({ mode: editMode, items, infoFields, instructions: finalInstructions }),
-        });
-        if (!res.ok) throw new Error(await res.text());
-        const data = await res.json();
-        const patch = {};
-        for (const r of data.results || []) patch[r.key] = { suggestedAlt: r.suggestedAlt };
-        patchImages(shop, patch);
-        refresh();
-        if (data.results?.length) setMessage('Alt text generated. Click “Embed all” to apply.');
-        if (data.errors?.length) setError(data.errors.slice(0, 2).join(' | '));
+
+        // Send in small chunks (not all at once) so a request never runs long enough
+        // to time out, results stream in progressively, and large sets don't crash.
+        const CHUNK = 8;
+        const headers = await authHeaders({ 'Content-Type': 'application/json' });
+        let producedCount = 0;
+        let stopMsg = null;
+        const errs = [];
+        setGenProgress({ done: 0, total: items.length });
+
+        for (let i = 0; i < items.length; i += CHUNK) {
+          const batch = items.slice(i, i + CHUNK);
+          const res = await fetch(`/api/generate?shop=${encodeURIComponent(shop)}`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ mode: editMode, items: batch, infoFields, instructions: finalInstructions }),
+          });
+          if (!res.ok) throw new Error(await res.text());
+          const data = await res.json();
+
+          const patch = {};
+          for (const r of data.results || []) patch[r.key] = { suggestedAlt: r.suggestedAlt };
+          const n = Object.keys(patch).length;
+          if (n) { patchImages(shop, patch); refresh(); producedCount += n; }
+          if (data.errors?.length) errs.push(...data.errors);
+
+          setGenProgress({ done: Math.min(i + batch.length, items.length), total: items.length });
+
+          // AI not configured / busy / quota → stop the remaining chunks cleanly
+          if (data.errors?.some((e) => /not available|busy|try again|configured/i.test(e))) {
+            stopMsg = data.errors[0];
+            break;
+          }
+        }
+
+        setGenProgress(null);
+        if (producedCount) {
+          logActivity(shop, { type: 'generate', count: producedCount, method: editMode });
+          setMessage('Alt text generated. Click “Embed all” to apply.');
+        }
+        if (stopMsg) setError(stopMsg);
+        else if (errs.length) setError(errs.slice(0, 2).join(' | '));
       }
     } catch (e) {
       setError(e.message || 'Generate failed');
     } finally {
       setBusy(null);
+      setGenProgress(null);
     }
   }
 
@@ -308,6 +341,7 @@ export default function GeneratePage() {
         patchImages(shop, patch);
       }
       refresh();
+      if (data.applied) logActivity(shop, { type: 'embed', count: data.applied });
       setMessage(`Alt text added to ${data.applied} image${data.applied === 1 ? '' : 's'} in Shopify.`);
       if (data.errors?.length) setError(data.errors.slice(0, 2).join(' | '));
     } catch (e) {
@@ -341,6 +375,7 @@ export default function GeneratePage() {
         patchImages(shop, patch);
       }
       refresh();
+      if (data.applied) logActivity(shop, { type: 'clear', count: data.applied });
       setMessage(`Cleared alt text from ${data.applied} image${data.applied === 1 ? '' : 's'}.`);
       if (data.errors?.length) setError(data.errors.slice(0, 2).join(' | '));
     } catch (e) {
@@ -479,7 +514,7 @@ export default function GeneratePage() {
 
           {/* ===== 3 · Edit ===== */}
           <section className="animate-fade-in">
-            <SectionTitle icon={Wand2} desc="Choose how to create the alt text — a template, the item title, or AI.">Edit matching images</SectionTitle>
+            <SectionTitle icon={Wand2} desc="Choose how to create the alt text: a template, the item title, or AI.">Edit matching images</SectionTitle>
             <div className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">Choose how you want to edit</label>
@@ -562,7 +597,7 @@ export default function GeneratePage() {
                       Special instructions <span className="font-normal text-slate-500">(optional)</span>
                     </label>
                     <textarea value={instructions} onChange={(e) => setInstructions(e.target.value)} rows={2}
-                      placeholder="e.g. Write in English. Mention colour and material"
+                      placeholder="e.g. Write in English. Mention color and material"
                       className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
                   </div>
                 </div>
@@ -609,6 +644,24 @@ export default function GeneratePage() {
           </button>
         )}
 
+        {/* live AI progress (chunked generation) */}
+        {genProgress ? (
+          <div className="mt-3 rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="inline-flex items-center gap-2 font-medium text-slate-700">
+                <Loader2 className="h-4 w-4 animate-spin text-indigo-600" /> Generating alt text…
+              </span>
+              <span className="font-semibold text-indigo-700 tabular-nums">{genProgress.done} / {genProgress.total}</span>
+            </div>
+            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-indigo-100">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-600 transition-all duration-300"
+                style={{ width: `${genProgress.total ? Math.round((genProgress.done / genProgress.total) * 100) : 0}%` }}
+              />
+            </div>
+          </div>
+        ) : null}
+
         {/* messages appear here — below the action, not at the top */}
         {message ? (
           <div className="mt-3 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 shadow-sm">
@@ -652,7 +705,7 @@ export default function GeneratePage() {
                 <div className="space-y-2 p-4 text-sm">
                   <Row label={OWNER_LABEL[img.source] || 'Title'} value={img.title} />
                   <div>
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">New alt — edit if needed</label>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">New alt (edit if needed)</label>
                     <EditableAlt img={img} onCommit={commitEdit} />
                   </div>
                 </div>

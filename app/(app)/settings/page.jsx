@@ -109,7 +109,7 @@ export default function SettingsPage() {
           ))}
         </div>
         {scanSources.length === 0 ? (
-          <p className="text-sm font-medium text-rose-600">Select at least one source — otherwise all sources are scanned.</p>
+          <p className="text-sm font-medium text-rose-600">Select at least one source, otherwise all sources are scanned.</p>
         ) : null}
       </section>
 
@@ -141,7 +141,7 @@ export default function SettingsPage() {
             value={aiInstructions}
             onChange={(e) => { setSaved(false); setAiInstructions(e.target.value); }}
             rows={3}
-            placeholder="e.g. Mention colour and material when visible. Keep a friendly tone."
+            placeholder="e.g. Mention color and material when visible. Keep a friendly tone."
             className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-800 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
           />
         </div>

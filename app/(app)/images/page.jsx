@@ -28,9 +28,9 @@ const TABS = [
 
 const TAB_NOTE = {
   ALL: 'Every image found across your products, files, blog posts and collections.',
-  MISSING: 'Images with no alt text. Screen readers can’t describe these, so they need it most — start here.',
+  MISSING: 'Images with no alt text. Screen readers can’t describe these, so they need it most. Start here.',
   NEEDS_IMPROVEMENT:
-    'Images whose alt text isn’t WCAG-clean — it has symbols or punctuation, stray dashes, the word “image”, or is too generic.',
+    'Images whose alt text isn’t WCAG-clean: symbols or punctuation, stray dashes, the word “image”, or too generic.',
   OPTIMIZED: 'Images that already have clear, WCAG-friendly alt text. Nothing to do here.',
 };
 
@@ -56,7 +56,7 @@ function reasonDetail(img) {
         : 'Contains special characters or symbols that don’t belong in alt text.';
     }
     case 'generic':
-      return 'Too generic — it doesn’t actually describe what’s in the image.';
+      return 'Too generic. It doesn’t actually describe what’s in the image.';
     case 'duplicate':
       return 'The same alt text is used on other images. Make each one unique.';
     default:
@@ -201,7 +201,7 @@ export default function ImagesPage() {
               <p className="mt-3 text-sm font-medium text-slate-700">Nothing in this category.</p>
               <p className="mt-1 text-sm text-slate-500">
                 {tab === 'MISSING' || tab === 'NEEDS_IMPROVEMENT'
-                  ? 'Great — no images need attention here.'
+                  ? 'Great, no images need attention here.'
                   : 'No images to show.'}
               </p>
             </div>

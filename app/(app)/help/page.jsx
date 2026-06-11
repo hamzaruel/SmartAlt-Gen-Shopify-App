@@ -8,7 +8,7 @@ const SUPPORT_EMAIL = 'support@ecomback.com';
 const FAQS = [
   {
     q: 'What does SmartAltGen do?',
-    a: 'It scans every image in your store and generates clear, WCAG-friendly alt text, then saves it back to Shopify — so screen readers can describe your images and your image SEO improves.',
+    a: 'It scans every image in your store and generates clear, WCAG-friendly alt text, then saves it back to Shopify, so screen readers can describe your images and your image SEO improves.',
   },
   {
     q: 'What is alt text and why does it matter?',
@@ -24,15 +24,15 @@ const FAQS = [
   },
   {
     q: 'Will this change my actual images?',
-    a: 'No. SmartAltGen only updates the alt text — your images, files and products themselves are never modified.',
+    a: 'No. SmartAltGen only updates the alt text. Your images, files and products themselves are never modified.',
   },
   {
     q: 'Do you store my images?',
-    a: 'No. Images are read live from Shopify each time you scan. We only store your store’s secure access token so the app can work — nothing else.',
+    a: 'No. Images are read live from Shopify each time you scan. We only store your store’s secure access token so the app can work, nothing else.',
   },
   {
     q: 'How long is the generated alt text?',
-    a: 'Always under 120 characters, with no quotes or stray symbols — kept concise the way WCAG recommends.',
+    a: 'Always under 120 characters, with no quotes or stray symbols, kept concise the way WCAG recommends.',
   },
   {
     q: 'Can I edit the alt text before saving?',
