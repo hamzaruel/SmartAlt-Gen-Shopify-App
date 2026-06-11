@@ -2,7 +2,7 @@
 
 client_id = "a7267757e6ee2a05c2f043406a348e11"
 name = "SmartAltGen"
-application_url = "https://uncreatable-virgil-condignly.ngrok-free.dev"
+application_url = "https://www.accessibilitygenerator.com/smart-alt-gen"
 embedded= true
 
 [webhooks]
@@ -22,7 +22,7 @@ scopes = "read_products,write_products,read_files,write_files,read_content,write
 use_legacy_install_flow = false
 
 [auth]
-redirect_urls = ["https://uncreatable-virgil-condignly.ngrok-free.dev/api/auth/callback"]
+redirect_urls = ["https://www.accessibilitygenerator.com/smart-alt-gen/api/auth/callback"]
 
 [build]
 automatically_update_urls_on_dev = true
