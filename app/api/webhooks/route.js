@@ -1,4 +1,7 @@
 import crypto from "crypto";
+import { deleteShop } from "@/lib/db";
+
+export const dynamic = "force-dynamic";
 
 function verifyShopifyHmac(rawBody, hmacHeader, secret) {
   if (!secret || !hmacHeader) return false;
@@ -24,11 +27,29 @@ export async function POST(req) {
 
   const isValid = verifyShopifyHmac(rawBody, hmacHeader, secret);
 
+  // Invalid HMAC → Shopify requires 401 Unauthorized for compliance webhooks.
   if (!isValid) {
     return new Response(JSON.stringify({ ok: false, error: "Unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
     });
+  }
+
+  // Handle the mandatory compliance topics. SmartAltGen stores ONLY the shop's
+  // access token (no customer data), so:
+  //  - customers/data_request: nothing to return (we hold no customer data)
+  //  - customers/redact:       nothing to delete
+  //  - shop/redact:            delete the shop's stored access token
+  const topic = req.headers.get("x-shopify-topic") || "";
+  let payload = {};
+  try { payload = JSON.parse(rawBody || "{}"); } catch { /* ignore */ }
+
+  if (topic === "shop/redact" && payload.shop_domain) {
+    try {
+      await deleteShop(payload.shop_domain);
+    } catch (e) {
+      console.error("shop/redact: failed to delete shop", e);
+    }
   }
 
   return new Response(JSON.stringify({ ok: true }), {

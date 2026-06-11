@@ -450,8 +450,11 @@ export default function DashboardPage() {
         <h2 className="mb-5 text-center text-sm font-semibold uppercase tracking-wide text-slate-500">How it works</h2>
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {STEPS.map(({ title, text, icon: Icon, ring }, i) => (
-            <div key={title} className="text-center">
-              <div className={`mx-auto flex h-11 w-11 items-center justify-center rounded-full shadow-sm ${ring}`}>
+            <div key={title} className="group text-center">
+              <div
+                className={`animate-float mx-auto flex h-11 w-11 items-center justify-center rounded-full shadow-sm transition-shadow duration-300 group-hover:shadow-md ${ring}`}
+                style={{ animationDelay: `${i * 0.4}s` }}
+              >
                 <Icon className="h-5 w-5" />
               </div>
               <h3 className="mt-3 text-base font-semibold text-slate-800">{i + 1}. {title}</h3>

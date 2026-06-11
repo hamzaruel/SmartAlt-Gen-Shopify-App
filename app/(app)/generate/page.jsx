@@ -212,13 +212,20 @@ export default function GeneratePage() {
     setSkipExisting(!!s.skipExisting);
   }, [shop]);
 
-  // Reset preview/page/edit-choice each time the merchant switches type.
+  // Restore the chosen type + edit mode on mount, so navigating away and coming
+  // back keeps your selection and the generated results (instead of clearing it).
+  // The per-type resets now live in the type-pill onClick (a manual switch), so
+  // restoring here does NOT wipe the restored state.
   useEffect(() => {
-    setPage(0);
-    setGenPage(0);
-    setShowPreview(false);
-    setEditMode(''); // options differ per type, so start fresh
-  }, [selected]);
+    if (!shop) return;
+    const savedType = sessionStorage.getItem(`smartaltgen:gentype:${shop}`);
+    const savedMode = sessionStorage.getItem(`smartaltgen:genmode:${shop}`);
+    if (savedType) {
+      setSelected(savedType);
+      const validModes = editOptionsFor(savedType).map((o) => o.value);
+      if (savedMode && validModes.includes(savedMode)) setEditMode(savedMode);
+    }
+  }, [shop]);
 
   const editOptions = editOptionsFor(selected);
 
@@ -264,7 +271,15 @@ export default function GeneratePage() {
         logActivity(shop, { type: 'generate', count: editTargets.length, method: editMode });
         setMessage('Alt text generated. Click “Embed all” to apply.');
       } else if (editMode === 'ai' || editMode === 'ai_custom') {
-        const items = editTargets.map((i) => ({
+        // Resumable: skip images that already have a generated alt (e.g. from a run
+        // that was interrupted by navigating away), so a re-run continues the rest
+        // instead of starting over.
+        const pending = editTargets.filter((i) => !(i.suggestedAlt && i.suggestedAlt.trim()));
+        if (pending.length === 0) {
+          setMessage('All selected images already have generated alt text. Click “Embed all” to apply.');
+          return;
+        }
+        const items = pending.map((i) => ({
           key: i.key, source: i.source, url: i.url, title: i.title, type: i.type, vendor: i.vendor, position: i.position,
         }));
         // prepend the chosen language (from Settings) to the instructions sent to AI
@@ -409,7 +424,18 @@ export default function GeneratePage() {
               return (
                 <button
                   key={id}
-                  onClick={() => setSelected(active ? null : id)}
+                  onClick={() => {
+                    const next = active ? null : id;
+                    setSelected(next);
+                    // manual type switch starts fresh
+                    setPage(0);
+                    setGenPage(0);
+                    setShowPreview(false);
+                    setEditMode('');
+                    sessionStorage.removeItem(`smartaltgen:genmode:${shop}`);
+                    if (next) sessionStorage.setItem(`smartaltgen:gentype:${shop}`, next);
+                    else sessionStorage.removeItem(`smartaltgen:gentype:${shop}`);
+                  }}
                   className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200 ease-out hover:-translate-y-0.5 active:scale-[0.97] ${
                     active
                       ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/25'
@@ -521,7 +547,11 @@ export default function GeneratePage() {
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">Choose how you want to edit</label>
                 <select
                   value={editMode}
-                  onChange={(e) => setEditMode(e.target.value)}
+                  onChange={(e) => {
+                    setEditMode(e.target.value);
+                    if (e.target.value) sessionStorage.setItem(`smartaltgen:genmode:${shop}`, e.target.value);
+                    else sessionStorage.removeItem(`smartaltgen:genmode:${shop}`);
+                  }}
                   className="w-full max-w-sm rounded-lg border border-slate-300 bg-white py-2 pl-3 pr-10 text-sm text-slate-800 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
                 >
                   <option value="" disabled>Choose how you want to edit…</option>

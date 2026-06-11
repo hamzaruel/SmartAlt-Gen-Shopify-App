@@ -46,6 +46,21 @@ export default function AppLayout({ children }) {
 
       <main className="min-h-screen bg-slate-50">
         <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:py-8">{children}</div>
+
+        {/* Footer with legal links.
+            TODO: replace the empty href values below with the external
+            Privacy Policy and Terms of Service page URLs once they exist. */}
+        <footer className="mx-auto max-w-5xl px-4 pb-8 text-center text-sm text-slate-500">
+          <a href="" target="_blank" rel="noopener noreferrer" className="font-medium text-indigo-600 underline-offset-2 transition hover:text-indigo-700 hover:underline">
+            Privacy Policy
+          </a>
+          <span className="mx-2.5 text-slate-300">·</span>
+          <a href="" target="_blank" rel="noopener noreferrer" className="font-medium text-indigo-600 underline-offset-2 transition hover:text-indigo-700 hover:underline">
+            Terms of Service
+          </a>
+          <span className="mx-2.5 text-slate-300">·</span>
+          <span className="font-semibold text-slate-700">SmartAltGen</span>
+        </footer>
       </main>
     </>
   );
