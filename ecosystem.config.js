@@ -29,6 +29,10 @@ module.exports = {
         TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN,
 
         GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+
+        // Billing: set "true" in .env to force Shopify TEST charges (no real money)
+        // while QA-ing. Leave unset/false for real charges at launch.
+        SHOPIFY_BILLING_TEST: process.env.SHOPIFY_BILLING_TEST,
       },
     },
   ],
