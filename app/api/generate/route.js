@@ -124,8 +124,9 @@ export async function POST(request) {
   }
 
   const extra = [];
-  if (isAi && aiGenerated >= aiBudget && items.length > aiGenerated) {
-    extra.push('You’ve reached your monthly AI image limit — some images weren’t generated. Upgrade to continue.');
+  const budgetExhausted = isAi && aiGenerated >= aiBudget && items.length > aiGenerated;
+  if (budgetExhausted) {
+    extra.push('You’ve reached your plan’s AI limit — some images weren’t generated. Upgrade to continue.');
   }
   if (billing?.capReached) {
     extra.push('Your usage cap was reached. Approve a higher cap to keep generating.');
@@ -135,6 +136,7 @@ export async function POST(request) {
     results,
     errors: [...errors, ...extra],
     mode,
+    ...(budgetExhausted ? { quotaReached: true } : {}),
     ...(billing ? { used: billing.total, overflowChargedBlocks: billing.overflowChargedBlocks } : {}),
   });
 }

@@ -170,6 +170,8 @@ function Pager({ page, totalPages, onPrev, onNext }) {
 export default function GeneratePage() {
   const searchParams = useSearchParams();
   const shop = searchParams.get('shop');
+  const host = searchParams.get('host');
+  const billingQs = `?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}`;
 
   const [allImages, setAllImages] = useState([]);
   const [selected, setSelected] = useState(null); // no type pre-selected
@@ -189,6 +191,7 @@ export default function GeneratePage() {
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
   const [genProgress, setGenProgress] = useState(null); // { done, total } while AI generating
+  const [upgrade, setUpgrade] = useState(false); // show "upgrade your plan" when AI quota is hit
 
   const refresh = useCallback(() => {
     setAllImages(loadScan(shop)?.images || []);
@@ -256,6 +259,7 @@ export default function GeneratePage() {
     setBusy('generate');
     setError(null);
     setMessage(null);
+    setUpgrade(false);
     try {
       if (editTargets.length === 0) {
         setMessage('No images to edit with the current settings.');
@@ -312,6 +316,13 @@ export default function GeneratePage() {
           if (data.errors?.length) errs.push(...data.errors);
 
           setGenProgress({ done: Math.min(i + batch.length, items.length), total: items.length });
+
+          // Plan limit reached → show the upgrade prompt and stop.
+          if (data.upgradeRequired || data.quotaReached) {
+            setUpgrade(true);
+            stopMsg = data.errors?.[0] || 'You’ve reached your plan’s AI limit. Upgrade to continue.';
+            break;
+          }
 
           // AI not configured / busy / quota → stop the remaining chunks cleanly
           if (data.errors?.some((e) => /not available|busy|try again|configured/i.test(e))) {
@@ -710,6 +721,22 @@ export default function GeneratePage() {
             </span>
             <span className="flex-1 text-sm font-medium text-rose-800">{error}</span>
             <button onClick={() => setError(null)} className="shrink-0 text-rose-400 hover:text-rose-600" aria-label="Dismiss"><X className="h-4 w-4" /></button>
+          </div>
+        ) : null}
+        {upgrade ? (
+          <div className="mt-3 flex flex-col gap-3 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 shadow-sm sm:flex-row sm:items-center">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+              <Wand2 className="h-4 w-4" />
+            </span>
+            <span className="flex-1 text-sm font-medium text-indigo-900">
+              You’ve reached your plan’s AI limit. Upgrade for more AI alt text.
+            </span>
+            <a
+              href={`${BASE_PATH}/billing${billingQs}`}
+              className="inline-flex shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-md"
+            >
+              Upgrade your plan
+            </a>
           </div>
         ) : null}
       </div>

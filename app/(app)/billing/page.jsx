@@ -14,6 +14,7 @@ function priceLabel(p) {
 }
 
 function quotaLabel(p) {
+  if (p.id === 'free') return '5 AI images to try + title-based';
   if (!p.ai) return 'Title-based alt text';
   const base = `${p.quota.toLocaleString()} AI images / mo`;
   if (p.overflow) return `${base}, then $${p.overflow.blockPrice}/${(p.overflow.blockSize / 1000)}k`;
