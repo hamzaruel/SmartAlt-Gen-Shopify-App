@@ -7,7 +7,7 @@ const SUPPORT_EMAIL = 'support@ecomback.com';
 
 const FAQS = [
   {
-    q: 'What does SmartAltGen do?',
+    q: 'What does Alt Text Pro do?',
     a: 'It scans every image in your store and generates clear, WCAG-friendly alt text, then saves it back to Shopify, so screen readers can describe your images and your image SEO improves.',
   },
   {
@@ -24,7 +24,7 @@ const FAQS = [
   },
   {
     q: 'Will this change my actual images?',
-    a: 'No. SmartAltGen only updates the alt text. Your images, files and products themselves are never modified.',
+    a: 'No. Alt Text Pro only updates the alt text. Your images, files and products themselves are never modified.',
   },
   {
     q: 'Do you store my images?',
@@ -105,12 +105,12 @@ export default function HelpPage() {
             </span>
             <div>
               <h2 className="text-base font-semibold text-slate-800">Still need help?</h2>
-              <p className="mt-0.5 text-sm text-slate-600">Our team is happy to help with anything about SmartAltGen.</p>
+              <p className="mt-0.5 text-sm text-slate-600">Our team is happy to help with anything about Alt Text Pro.</p>
             </div>
           </div>
 
           <a
-            href={`mailto:${SUPPORT_EMAIL}?subject=SmartAltGen support`}
+            href={`mailto:${SUPPORT_EMAIL}?subject=Alt Text Pro support`}
             aria-label={`Email us at ${SUPPORT_EMAIL}`}
             className="group relative mt-5 inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-indigo-500/20 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/40 active:translate-y-0 active:scale-[0.98]"
           >

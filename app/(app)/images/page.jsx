@@ -44,6 +44,14 @@ const REASON_TEXT = {
 
 const SOURCE_LABEL = { product: 'Product', file: 'File', article: 'Blog', collection: 'Collection' };
 
+const SOURCE_FILTERS = [
+  { id: 'all', label: 'All sources' },
+  { id: 'product', label: 'Products' },
+  { id: 'collection', label: 'Collections' },
+  { id: 'article', label: 'Blog posts' },
+  { id: 'file', label: 'Files' },
+];
+
 // A specific, helpful explanation of WHY an alt needs work (what's wrong + the fix).
 function reasonDetail(img) {
   const alt = img.currentAlt || '';
@@ -118,7 +126,14 @@ export default function ImagesPage() {
   const host = searchParams.get('host');
   const qs = `?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}`;
 
-  const [tab, setTab] = useState('ALL');
+  const [tab, setTab] = useState(() => {
+    const t = searchParams.get('tab');
+    return ['ALL', 'MISSING', 'NEEDS_IMPROVEMENT', 'OPTIMIZED'].includes(t) ? t : 'ALL';
+  });
+  const [source, setSource] = useState(() => {
+    const s = searchParams.get('source');
+    return ['product', 'collection', 'article', 'file'].includes(s) ? s : 'all';
+  }); // filter by image source
   const [page, setPage] = useState(0);
   const [allImages, setAllImages] = useState([]);
 
@@ -127,21 +142,24 @@ export default function ImagesPage() {
     setAllImages(cached?.images || []);
   }, [shop]);
 
-  // back to first page whenever the tab changes
+  // back to first page whenever the tab or source filter changes
   useEffect(() => {
     setPage(0);
-  }, [tab]);
+  }, [tab, source]);
+
+  const presentSources = [...new Set(allImages.map((i) => i.source))];
+  const sourceImages = source === 'all' ? allImages : allImages.filter((i) => i.source === source);
 
   const counts = (id) =>
-    id === 'ALL' ? allImages.length : allImages.filter((i) => i.status === id).length;
+    id === 'ALL' ? sourceImages.length : sourceImages.filter((i) => i.status === id).length;
 
-  const filtered = tab === 'ALL' ? allImages : allImages.filter((i) => i.status === tab);
+  const filtered = tab === 'ALL' ? sourceImages : sourceImages.filter((i) => i.status === tab);
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount - 1);
   const pageItems = filtered.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* ===== Header ===== */}
       <div className="animate-card-in rounded-2xl bg-gradient-to-br from-indigo-50 to-white p-6 ring-1 ring-slate-100">
         <div className="flex items-center gap-3">
@@ -191,6 +209,27 @@ export default function ImagesPage() {
           <div className="animate-fade-in flex items-start gap-2.5 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-100">
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" />
             <p>{TAB_NOTE[tab]}</p>
+          </div>
+
+          {/* ===== Source filter ===== */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Source</span>
+            {SOURCE_FILTERS.filter((s) => s.id === 'all' || presentSources.includes(s.id)).map((s) => {
+              const active = source === s.id;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setSource(s.id)}
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                    active
+                      ? 'bg-indigo-600 text-white shadow-sm'
+                      : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 hover:text-slate-800'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              );
+            })}
           </div>
 
           {/* ===== List ===== */}

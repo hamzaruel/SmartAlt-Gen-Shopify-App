@@ -2,7 +2,7 @@ import './globals.css';
 import { Suspense } from 'react';
 
 export const metadata = {
-  title: 'SmartAltGen',
+  title: 'Alt Text Pro',
   description: 'Generate WCAG-compliant alt text for your Shopify product images.',
 };
 

@@ -15,6 +15,7 @@ import {
   Images as ImagesIcon,
   LayoutGrid,
   AlertTriangle,
+  AlertCircle,
   CheckCircle2,
   Package,
   Layers,
@@ -165,6 +166,19 @@ export default function DashboardPage() {
   const animTotal = Math.round(total * ringEase); // tile numbers count up in sync
   const animWithAlt = Math.round(withAlt * ringEase);
   const animMissing = Math.round(missing * ringEase);
+  const needsImprovement = stats?.needsImprovement || 0;
+  const animNeeds = Math.round(needsImprovement * ringEase);
+  const optimized = Math.max(0, total - missing - needsImprovement);
+  const animOptimized = Math.round(optimized * ringEase);
+  // donut: three segments (optimized green, needs-work amber, missing rose) that
+  // fill clockwise in order as ringEase sweeps 0→1.
+  const fOpt = total ? optimized / total : 0;
+  const fNeeds = total ? needsImprovement / total : 0;
+  const fMiss = total ? missing / total : 0;
+  const segLen = (start, frac) => ring * Math.min(frac, Math.max(0, ringEase - start));
+  const greenLen = segLen(0, fOpt);
+  const amberLen = segLen(fOpt, fNeeds);
+  const roseLen = segLen(fOpt + fNeeds, fMiss);
   const sourceStats = SOURCES.map((s) => {
     const imgs = images.filter((i) => i.source === s.id);
     const miss = imgs.filter((i) => i.status === 'MISSING').length;
@@ -195,7 +209,7 @@ export default function DashboardPage() {
           Every image, properly described
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-base text-slate-600">
-          <span className="font-semibold text-indigo-600">SmartAltGen</span>
+          <span className="font-semibold text-indigo-600">Alt Text Pro</span>
           <span className="mx-1.5 text-slate-300">•</span>
           Alt text for every image
         </p>
@@ -271,26 +285,33 @@ export default function DashboardPage() {
 
             {/* Headline tiles — entrance on the wrapper, hover lift on the inner card
                 (kept separate so the animation's transform doesn't block the hover) */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <div className="animate-card-in" style={{ animationDelay: '0ms' }}>
                 <div className="h-full cursor-default rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg hover:ring-slate-200">
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><LayoutGrid className="h-4 w-4" /></div>
-                  <div className="mt-2 text-2xl font-bold text-slate-900 tabular-nums">{animTotal.toLocaleString()}</div>
+                  <div className="mt-2 text-xl font-bold text-slate-900 tabular-nums">{animTotal.toLocaleString()}</div>
                   <div className="text-sm text-slate-600">Total images</div>
                 </div>
               </div>
               <div className="animate-card-in" style={{ animationDelay: '90ms' }}>
                 <div className="h-full cursor-default rounded-2xl bg-emerald-50 p-4 ring-1 ring-emerald-100 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg hover:shadow-emerald-500/20 hover:ring-emerald-200">
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600"><CheckCircle2 className="h-4 w-4" /></div>
-                  <div className="mt-2 text-2xl font-bold text-slate-900 tabular-nums">{animWithAlt.toLocaleString()}</div>
+                  <div className="mt-2 text-xl font-bold text-slate-900 tabular-nums">{animWithAlt.toLocaleString()}</div>
                   <div className="text-sm text-slate-600">With alt text</div>
                 </div>
               </div>
               <div className="animate-card-in" style={{ animationDelay: '180ms' }}>
                 <div className="h-full cursor-default rounded-2xl bg-rose-50 p-4 ring-1 ring-rose-100 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg hover:shadow-rose-500/20 hover:ring-rose-200">
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-100 text-rose-600"><AlertTriangle className="h-4 w-4" /></div>
-                  <div className="mt-2 text-2xl font-bold text-slate-900 tabular-nums">{animMissing.toLocaleString()}</div>
+                  <div className="mt-2 text-xl font-bold text-slate-900 tabular-nums">{animMissing.toLocaleString()}</div>
                   <div className="text-sm text-slate-600">Missing alt</div>
+                </div>
+              </div>
+              <div className="animate-card-in" style={{ animationDelay: '270ms' }}>
+                <div className="h-full cursor-default rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-100 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg hover:shadow-amber-500/20 hover:ring-amber-200">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-600"><AlertCircle className="h-4 w-4" /></div>
+                  <div className="mt-2 text-xl font-bold text-slate-900 tabular-nums">{animNeeds.toLocaleString()}</div>
+                  <div className="text-sm text-slate-600">Needs work</div>
                 </div>
               </div>
             </div>
@@ -300,20 +321,17 @@ export default function DashboardPage() {
             <div className="flex flex-col items-center gap-6 rounded-2xl bg-gradient-to-br from-indigo-50/70 via-white to-white p-6 ring-1 ring-slate-100 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg hover:shadow-indigo-500/15 hover:ring-indigo-200 sm:flex-row sm:gap-8">
               <div className="relative h-36 w-36 shrink-0">
                 <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
-                  <defs>
-                    <linearGradient id="covGrad" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#34d399" />
-                      <stop offset="100%" stopColor="#059669" />
-                    </linearGradient>
-                  </defs>
-                  {/* track = missing portion (rose); green arc on top = covered */}
-                  <circle cx="60" cy="60" r="52" fill="none" stroke="#fb7185" strokeWidth="11" />
-                  <circle
-                    cx="60" cy="60" r="52" fill="none" stroke="url(#covGrad)" strokeWidth="11"
-                    strokeLinecap="round"
-                    strokeDasharray={ring}
-                    strokeDashoffset={ring * (1 - animCoverage / 100)}
-                  />
+                  {/* light track behind the coloured segments */}
+                  <circle cx="60" cy="60" r="52" fill="none" stroke="#eef2f7" strokeWidth="11" />
+                  {/* optimized (green) */}
+                  <circle cx="60" cy="60" r="52" fill="none" stroke="#10b981" strokeWidth="11"
+                    strokeDasharray={`${greenLen} ${ring}`} transform="rotate(0 60 60)" />
+                  {/* needs work (amber) */}
+                  <circle cx="60" cy="60" r="52" fill="none" stroke="#f59e0b" strokeWidth="11"
+                    strokeDasharray={`${amberLen} ${ring}`} transform={`rotate(${fOpt * 360} 60 60)`} />
+                  {/* missing (rose) */}
+                  <circle cx="60" cy="60" r="52" fill="none" stroke="#fb7185" strokeWidth="11"
+                    strokeDasharray={`${roseLen} ${ring}`} transform={`rotate(${(fOpt + fNeeds) * 360} 60 60)`} />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <span className="text-3xl font-bold tracking-tight text-slate-900 tabular-nums">{Math.round(animCoverage)}%</span>
@@ -326,10 +344,14 @@ export default function DashboardPage() {
                 <p className="mt-1 text-sm text-slate-600">
                   <span className="font-semibold text-slate-700 tabular-nums">{animWithAlt.toLocaleString()}</span> of {total.toLocaleString()} images already have alt text.
                 </p>
-                <div className="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-2 sm:justify-start">
+                <div className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-2 sm:justify-start">
                   <span className="inline-flex items-center gap-2 text-sm text-slate-600">
                     <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                    With alt <span className="font-semibold text-slate-800 tabular-nums">{animWithAlt.toLocaleString()}</span>
+                    Optimized <span className="font-semibold text-slate-800 tabular-nums">{animOptimized.toLocaleString()}</span>
+                  </span>
+                  <span className="inline-flex items-center gap-2 text-sm text-slate-600">
+                    <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+                    Needs work <span className="font-semibold text-slate-800 tabular-nums">{animNeeds.toLocaleString()}</span>
                   </span>
                   <span className="inline-flex items-center gap-2 text-sm text-slate-600">
                     <span className="h-2.5 w-2.5 rounded-full bg-rose-400" />
@@ -340,26 +362,44 @@ export default function DashboardPage() {
             </div>
             </div>
 
-            {/* Coverage by source */}
+            {/* Coverage by source — mini radial rings */}
             {sourceStats.length ? (
-              <div className="mt-6 space-y-4 border-t border-slate-100 pt-5">
+              <div className="mt-6 border-t border-slate-100 pt-5">
                 <p className="animate-card-in text-xs font-semibold uppercase tracking-wide text-slate-500" style={{ animationDelay: '340ms' }}>Coverage by source</p>
-                {sourceStats.map(({ id, label, icon: Icon, total: t, withAlt: w }, i) => {
-                  const pct = t > 0 ? Math.round((w / t) * 100) : 0;
-                  // staggered fill: each bar starts a little after the previous one
-                  const barEase = easeOutCubic(Math.min(1, Math.max(0, (reveal - i * 0.12) / 0.6)));
-                  return (
-                    <div key={id} className="animate-card-in -mx-2 flex items-center gap-3 rounded-lg px-2 py-1.5 transition-colors duration-200 hover:bg-slate-50" style={{ animationDelay: `${400 + i * 90}ms` }}>
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-500 ring-1 ring-slate-100"><Icon className="h-4 w-4" /></span>
-                      <span className="w-24 shrink-0 text-sm font-medium text-slate-600">{label}</span>
-                      <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
-                        <div className="h-full rounded-full bg-gradient-to-r from-indigo-400 to-violet-500" style={{ width: `${pct * barEase}%` }} />
+                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {sourceStats.map(({ id, label, icon: Icon, total: t, withAlt: w }, i) => {
+                    const pct = t > 0 ? Math.round((w / t) * 100) : 0;
+                    const ease = easeOutCubic(Math.min(1, Math.max(0, (reveal - i * 0.12) / 0.6)));
+                    const c = 2 * Math.PI * 16; // mini ring circumference (r=16)
+                    const ringColor = pct >= 80 ? '#10b981' : pct >= 40 ? '#f59e0b' : '#fb7185';
+                    return (
+                      <div
+                        key={id}
+                        className="animate-card-in flex flex-col items-center gap-2 rounded-2xl border border-slate-200 bg-white p-4 text-center transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-md"
+                        style={{ animationDelay: `${400 + i * 90}ms` }}
+                      >
+                        <div className="relative h-16 w-16">
+                          <svg viewBox="0 0 40 40" className="h-full w-full -rotate-90">
+                            <circle cx="20" cy="20" r="16" fill="none" stroke="#eef2f7" strokeWidth="4" />
+                            <circle
+                              cx="20" cy="20" r="16" fill="none" stroke={ringColor} strokeWidth="4" strokeLinecap="round"
+                              strokeDasharray={c}
+                              strokeDashoffset={c * (1 - (pct * ease) / 100)}
+                            />
+                          </svg>
+                          <div className="absolute inset-0 flex items-center justify-center text-sm font-bold text-slate-800 tabular-nums">
+                            {Math.round(pct * ease)}%
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+                          <Icon className="h-4 w-4 text-indigo-400" />
+                          {label}
+                        </div>
+                        <div className="text-xs text-slate-500 tabular-nums">{w}/{t} have alt</div>
                       </div>
-                      <span className="w-12 shrink-0 text-right text-xs font-semibold text-slate-500 tabular-nums">{Math.round(pct * barEase)}%</span>
-                      <span className="w-14 shrink-0 text-right text-xs text-slate-500 tabular-nums">{w}/{t}</span>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             ) : null}
 
@@ -471,7 +511,7 @@ export default function DashboardPage() {
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-sky-500" />
         <p>
           Alt text lets screen readers describe images and boosts image SEO. WCAG recommends concise,
-          meaningful text, so SmartAltGen keeps every alt under 120 characters.
+          meaningful text, so Alt Text Pro keeps every alt under 120 characters.
         </p>
       </div>
 
