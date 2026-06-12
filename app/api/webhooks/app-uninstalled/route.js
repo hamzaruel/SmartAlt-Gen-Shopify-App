@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { deleteShop } from '@/lib/db';
+import { clearSubscription } from '@/lib/billing/usage';
 import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
@@ -26,7 +27,10 @@ export async function POST(request) {
 
   // Verified uninstall → remove the shop's stored token.
   try {
-    if (shop) await deleteShop(shop);
+    if (shop) {
+      await deleteShop(shop);
+      await clearSubscription(shop); // drop back to Free; Shopify cancels the charge
+    }
     console.log('✅ app/uninstalled — cleaned up', shop);
   } catch (e) {
     console.error('app/uninstalled cleanup error:', e);

@@ -41,6 +41,7 @@ export default function AppLayout({ children }) {
         <s-link href={`${BASE_PATH}/images${qs}`}>Image audit</s-link>
         <s-link href={`${BASE_PATH}/generate${qs}`}>Alt text studio</s-link>
         <s-link href={`${BASE_PATH}/settings${qs}`}>Preferences</s-link>
+        <s-link href={`${BASE_PATH}/billing${qs}`}>Plans</s-link>
         <s-link href={`${BASE_PATH}/help${qs}`}>Help center</s-link>
       </s-app-nav>
 
