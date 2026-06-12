@@ -241,7 +241,11 @@ export default function GeneratePage() {
   const pageItems = matching.slice(pageSafe * PAGE_SIZE, pageSafe * PAGE_SIZE + PAGE_SIZE);
   const selectedLabel = TYPES.find((t) => t.id === selected)?.label || '';
   const selMissing = matching.filter((i) => i.status === 'MISSING').length;
+  const selNeeds = matching.filter((i) => i.status === 'NEEDS_IMPROVEMENT').length;
   const selOptimized = matching.filter((i) => i.status === 'OPTIMIZED').length;
+  // jump into Image audit at a status tab, pre-filtered to the selected source
+  const auditHref = (statusTab) =>
+    `${BASE_PATH}/images?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}&tab=${statusTab}&source=${selected || 'all'}`;
 
   const activeTemplate = templateChoice === 'custom' ? customTemplate : TEMPLATES[templateChoice];
   const hasAlt = (i) => i.currentAlt && i.currentAlt.trim() !== '';
@@ -413,7 +417,7 @@ export default function GeneratePage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <header className="animate-card-in flex items-center gap-4 rounded-2xl bg-gradient-to-br from-indigo-50 to-white p-6">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
           <Wand2 className="h-5 w-5" />
@@ -463,14 +467,20 @@ export default function GeneratePage() {
         </div>
 
         {selected ? (
-          <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm">
+          <div className="mt-3">
+            <p className="text-sm text-slate-500">Alt text status for this type. Click any number to view those images in the audit.</p>
+            <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm">
             <span className="font-medium text-slate-700">{matching.length} {selectedLabel.toLowerCase()}</span>
-            <span className="inline-flex items-center gap-1.5 text-rose-600">
+            <a href={auditHref('MISSING')} className="inline-flex items-center gap-1.5 text-rose-600 underline-offset-2 hover:underline">
               <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />{selMissing} missing alt
-            </span>
-            <span className="inline-flex items-center gap-1.5 text-emerald-600">
+            </a>
+            <a href={auditHref('NEEDS_IMPROVEMENT')} className="inline-flex items-center gap-1.5 text-amber-600 underline-offset-2 hover:underline">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />{selNeeds} need work
+            </a>
+            <a href={auditHref('OPTIMIZED')} className="inline-flex items-center gap-1.5 text-emerald-600 underline-offset-2 hover:underline">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />{selOptimized} optimized
-            </span>
+            </a>
+            </div>
           </div>
         ) : null}
       </section>
@@ -518,7 +528,26 @@ export default function GeneratePage() {
                           <Row label={OWNER_LABEL[img.source] || 'Title'} value={`${img.title}${img.source === 'product' ? ` (Position: ${img.position})` : ''}`} />
                           <Row label="Media type" value="Image" />
                           <Row label="File name" value={fileNameFromUrl(img.url)} />
-                          <Row label="Alt text" value={img.currentAlt || 'None'} />
+                          <Row
+                            label="Alt text"
+                            value={
+                              img.status === 'NEEDS_IMPROVEMENT' ? (
+                                <span className="inline-flex flex-wrap items-center gap-2">
+                                  <span className="break-words">{img.currentAlt || 'None'}</span>
+                                  <a
+                                    href={auditHref('NEEDS_IMPROVEMENT')}
+                                    className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 transition hover:bg-amber-200"
+                                  >
+                                    Needs improvement
+                                  </a>
+                                </span>
+                              ) : img.status === 'MISSING' ? (
+                                <span className="text-rose-600">None</span>
+                              ) : (
+                                img.currentAlt || 'None'
+                              )
+                            }
+                          />
                         </div>
                         <div className="flex flex-wrap gap-2 border-t border-slate-100 p-3">
                           {resolveAdminUrl(img, shop) ? (

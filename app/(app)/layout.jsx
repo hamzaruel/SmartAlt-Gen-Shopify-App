@@ -60,7 +60,7 @@ export default function AppLayout({ children }) {
             Terms of Service
           </a>
           <span className="mx-2.5 text-slate-300">·</span>
-          <span className="font-semibold text-slate-700">SmartAltGen</span>
+          <span className="font-semibold text-slate-700">Alt Text Pro</span>
         </footer>
       </main>
     </>
