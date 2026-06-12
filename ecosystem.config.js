@@ -33,6 +33,10 @@ module.exports = {
         // Billing: set "true" in .env to force Shopify TEST charges (no real money)
         // while QA-ing. Leave unset/false for real charges at launch.
         SHOPIFY_BILLING_TEST: process.env.SHOPIFY_BILLING_TEST,
+
+        // Comma-separated shop domains that bypass ALL billing gates (full access,
+        // no charges). For your test stores + the Shopify reviewer's store only.
+        BILLING_BYPASS_SHOPS: process.env.BILLING_BYPASS_SHOPS,
       },
     },
   ],
