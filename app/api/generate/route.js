@@ -38,7 +38,7 @@ export async function POST(request) {
   let entitlement = null;
   let aiBudget = Infinity;
   if (isAi) {
-    entitlement = await getEntitlement(shop);
+    entitlement = await getEntitlement(shop, token);
     if (!entitlement.plan.ai || !entitlement.active) {
       return NextResponse.json({
         results: [],
