@@ -86,9 +86,11 @@ export async function POST(request) {
     } catch (e) {
       const msg = e.message || 'failed';
       if (isAi && /\b429\b|quota|rate.?limit/i.test(msg)) {
+        console.error('Gemini rate/quota error → stopping batch:', msg);
         quotaHit = true; // one image hit the Gemini cap → stop the rest
         return;
       }
+      console.error('Gemini generate error:', msg);
       errors.push(`${item.title || item.key}: ${msg}`);
     }
   }
