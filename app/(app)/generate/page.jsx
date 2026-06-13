@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   Wand2,
@@ -203,6 +203,90 @@ export default function GeneratePage() {
     refresh();
   }, [shop, refresh]);
 
+  // ---- Background AI generation: poll the server job + reconnect on load ----
+  const pollRef = useRef(null);
+  const seqRef = useRef(0);
+
+  const stopPolling = useCallback(() => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = null;
+  }, []);
+
+  const pollStatusOnce = useCallback(async () => {
+    if (!shop) return;
+    try {
+      const res = await fetch(
+        `${BASE_PATH}/api/generate/status?shop=${encodeURIComponent(shop)}&since=${seqRef.current}`,
+        { headers: await authHeaders() },
+      );
+      const data = await res.json();
+      if (data.status === 'idle') {
+        stopPolling();
+        setBusy(null);
+        setGenProgress(null);
+        return;
+      }
+      if (Array.isArray(data.results) && data.results.length) {
+        const patch = {};
+        for (const r of data.results) {
+          patch[r.key] = { suggestedAlt: r.alt };
+          if (r.seq > seqRef.current) seqRef.current = r.seq;
+        }
+        patchImages(shop, patch);
+        refresh();
+      }
+      setGenProgress({ done: data.done || 0, total: data.total || 0 });
+      if (data.status === 'done' || data.status === 'error' || data.status === 'cancelled') {
+        stopPolling();
+        setBusy(null);
+        setGenProgress(null);
+        if (data.status === 'error') {
+          setError(data.error || 'Generation stopped.');
+          if (/limit|upgrade/i.test(data.error || '')) setUpgrade(true);
+        } else if (data.status === 'cancelled') {
+          setMessage('Generation stopped. Already-generated alt text is saved.');
+        } else {
+          if (data.done) logActivity(shop, { type: 'generate', count: data.done, method: 'ai' });
+          setMessage('Alt text generated. Click “Embed all” to apply.');
+        }
+      }
+    } catch {
+      /* transient — keep polling */
+    }
+  }, [shop, refresh, stopPolling]);
+
+  const startBackgroundPolling = useCallback(() => {
+    setBusy('generate');
+    stopPolling();
+    pollRef.current = setInterval(pollStatusOnce, 3000);
+    pollStatusOnce();
+  }, [pollStatusOnce, stopPolling]);
+
+  // Reconnect to a still-running background job after a refresh / tab close.
+  useEffect(() => {
+    if (!shop) return;
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch(
+          `${BASE_PATH}/api/generate/status?shop=${encodeURIComponent(shop)}&since=0`,
+          { headers: await authHeaders() },
+        );
+        const data = await res.json();
+        if (alive && data.status === 'running') {
+          seqRef.current = 0;
+          startBackgroundPolling();
+        }
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      alive = false;
+      stopPolling();
+    };
+  }, [shop, startBackgroundPolling, stopPolling]);
+
   useEffect(() => {
     let alive = true;
     // Restore from server if this tab/device has no local cache, then render.
@@ -267,16 +351,18 @@ export default function GeneratePage() {
   const genItems = generated.slice(genPageSafe * PAGE_SIZE, genPageSafe * PAGE_SIZE + PAGE_SIZE);
 
   async function generate() {
-    setBusy('generate');
     setError(null);
     setMessage(null);
     setUpgrade(false);
-    try {
-      if (editTargets.length === 0) {
-        setMessage('No images to edit with the current settings.');
-        return;
-      }
-      if (editMode === 'template' || editMode === 'title') {
+    if (editTargets.length === 0) {
+      setMessage('No images to edit with the current settings.');
+      return;
+    }
+
+    // Template / title — instant, client-side.
+    if (editMode === 'template' || editMode === 'title') {
+      setBusy('generate');
+      try {
         const tpl = editMode === 'title' ? '[product_title]' : activeTemplate;
         if (editMode === 'template' && !activeTemplate.trim()) throw new Error('Please choose or enter a template.');
         const patch = {};
@@ -285,76 +371,55 @@ export default function GeneratePage() {
         refresh();
         logActivity(shop, { type: 'generate', count: editTargets.length, method: editMode });
         setMessage('Alt text generated. Click “Embed all” to apply.');
-      } else if (editMode === 'ai' || editMode === 'ai_custom') {
-        // Resumable: skip images that already have a generated alt (e.g. from a run
-        // that was interrupted by navigating away), so a re-run continues the rest
-        // instead of starting over.
-        const pending = editTargets.filter((i) => !(i.suggestedAlt && i.suggestedAlt.trim()));
-        if (pending.length === 0) {
-          setMessage('All selected images already have generated alt text. Click “Embed all” to apply.');
+      } catch (e) {
+        setError(e.message || 'Generate failed');
+      } finally {
+        setBusy(null);
+      }
+      return;
+    }
+
+    // AI — runs as a BACKGROUND job on the server. It keeps going if you leave the
+    // page or close the tab; this page reconnects by polling. Already-generated
+    // images are skipped, so a re-run/resume continues the rest.
+    if (editMode === 'ai' || editMode === 'ai_custom') {
+      const pending = editTargets.filter((i) => !(i.suggestedAlt && i.suggestedAlt.trim()));
+      if (pending.length === 0) {
+        setMessage('All selected images already have generated alt text. Click “Embed all” to apply.');
+        return;
+      }
+      const items = pending.map((i) => ({
+        key: i.key, source: i.source, url: i.url, title: i.title, type: i.type, vendor: i.vendor, position: i.position,
+      }));
+      const langPrefix = aiLanguage ? `Write the alt text in ${aiLanguage}. ` : '';
+      const finalInstructions = `${langPrefix}${instructions || ''}`.trim();
+
+      setBusy('generate');
+      try {
+        const res = await fetch(`${BASE_PATH}/api/generate/start?shop=${encodeURIComponent(shop)}`, {
+          method: 'POST',
+          headers: await authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ mode: editMode, items, infoFields, instructions: finalInstructions }),
+        });
+        const data = await res.json();
+        if (data.upgradeRequired || data.quotaReached) {
+          setUpgrade(true);
+          setError(data.error || 'You’ve reached your plan’s AI limit. Upgrade to continue.');
+          setBusy(null);
           return;
         }
-        const items = pending.map((i) => ({
-          key: i.key, source: i.source, url: i.url, title: i.title, type: i.type, vendor: i.vendor, position: i.position,
-        }));
-        // prepend the chosen language (from Settings) to the instructions sent to AI
-        const langPrefix = aiLanguage ? `Write the alt text in ${aiLanguage}. ` : '';
-        const finalInstructions = `${langPrefix}${instructions || ''}`.trim();
-
-        // Send in small chunks (not all at once) so a request never runs long enough
-        // to time out, results stream in progressively, and large sets don't crash.
-        const CHUNK = 8;
-        const headers = await authHeaders({ 'Content-Type': 'application/json' });
-        let producedCount = 0;
-        let stopMsg = null;
-        const errs = [];
-        setGenProgress({ done: 0, total: items.length });
-
-        for (let i = 0; i < items.length; i += CHUNK) {
-          const batch = items.slice(i, i + CHUNK);
-          const res = await fetch(`${BASE_PATH}/api/generate?shop=${encodeURIComponent(shop)}`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({ mode: editMode, items: batch, infoFields, instructions: finalInstructions }),
-          });
-          if (!res.ok) throw new Error(await res.text());
-          const data = await res.json();
-
-          const patch = {};
-          for (const r of data.results || []) patch[r.key] = { suggestedAlt: r.suggestedAlt };
-          const n = Object.keys(patch).length;
-          if (n) { patchImages(shop, patch); refresh(); producedCount += n; }
-          if (data.errors?.length) errs.push(...data.errors);
-
-          setGenProgress({ done: Math.min(i + batch.length, items.length), total: items.length });
-
-          // Plan limit reached → show the upgrade prompt and stop.
-          if (data.upgradeRequired || data.quotaReached) {
-            setUpgrade(true);
-            stopMsg = data.errors?.[0] || 'You’ve reached your plan’s AI limit. Upgrade to continue.';
-            break;
-          }
-
-          // AI not configured / busy / quota → stop the remaining chunks cleanly
-          if (data.errors?.some((e) => /not available|busy|try again|configured/i.test(e))) {
-            stopMsg = data.errors[0];
-            break;
-          }
+        if (data.error || data.status !== 'running') {
+          setError(data.error || 'Could not start generation.');
+          setBusy(null);
+          return;
         }
-
-        setGenProgress(null);
-        if (producedCount) {
-          logActivity(shop, { type: 'generate', count: producedCount, method: editMode });
-          setMessage('Alt text generated. Click “Embed all” to apply.');
-        }
-        if (stopMsg) setError(stopMsg);
-        else if (errs.length) setError(errs.slice(0, 2).join(' | '));
+        seqRef.current = 0;
+        setMessage('Generating in the background — you can leave this page or close the tab; it’ll keep going.');
+        startBackgroundPolling(); // owns busy + progress from here
+      } catch (e) {
+        setError(e.message || 'Could not start generation.');
+        setBusy(null);
       }
-    } catch (e) {
-      setError(e.message || 'Generate failed');
-    } finally {
-      setBusy(null);
-      setGenProgress(null);
     }
   }
 
