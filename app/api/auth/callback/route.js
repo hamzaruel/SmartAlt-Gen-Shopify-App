@@ -161,8 +161,6 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { storeShop } from '@/lib/db';
-import { resolveAppUrl } from '@/lib/appUrl';
-import { BASE_PATH } from '@/lib/basePath';
 
 export const dynamic = 'force-dynamic';
 //new one test
@@ -343,48 +341,11 @@ if (!savedState || savedState !== state) {
     console.log('✅ Shop stored successfully:', shop);
 
 
-   // after storing shop in DB
-
-
-
-    // 6. Register webhook previous working
-    try {
-    // const webhookUrl = `${process.env.SHOPIFY_HOST}/sitemap-explorer/api/webhooks/app-uninstalled`;
-
-const webhookUrl = `${resolveAppUrl(request)}${BASE_PATH}/api/webhooks/app-uninstalled`;
-
-
-      console.log('🔔 Registering webhook:', webhookUrl);
-
-     const webhookResponse = await fetch(
- `https://${shop}/admin/api/2025-01/webhooks.json`,
-        {
-          method: 'POST',
-         headers: {
-           'X-Shopify-Access-Token': access_token,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            webhook: {
-              topic: 'app/uninstalled',
-              address: webhookUrl,
-              format: 'json',
-            },
-          }),
-        }
-      );
-
-      if (webhookResponse.ok) {
-        console.log('✅ Webhook registered');
-      } else {
-        const webhookError = await webhookResponse.text();
-        console.error('⚠️ Webhook failed:', webhookError);
-      }
-    } catch (webhookError) {
-      console.error('⚠️ Webhook error:', webhookError);
-    }
-
-
+    // Webhooks (app/uninstalled + the GDPR compliance topics) are declared in
+    // shopify.app.toml and registered by Shopify on `shopify app deploy`. We do
+    // NOT register them here with the code-grant access token — that token is a
+    // deprecated non-expiring offline token, and using it for Admin API calls is
+    // rejected by Shopify (and flags the app). Nothing to do at this step.
 
     // 7. Redirect to app
     // const appUrl = `https://${shop}/admin/apps/${process.env.SHOPIFY_APP_HANDLE}`;
