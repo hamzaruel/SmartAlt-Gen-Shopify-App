@@ -34,7 +34,7 @@ const SOURCES = [
   { id: 'article', label: 'Blog posts', icon: BookOpen },
   { id: 'file', label: 'Files', icon: FileText },
 ];
-import { loadScan, saveScan } from '@/lib/scanStore';
+import { loadScan, saveScan, hydrateScan } from '@/lib/scanStore';
 import { authHeaders } from '@/lib/sessionToken';
 import { BASE_PATH } from '@/lib/basePath';
 import { loadSettings } from '@/lib/settings';
@@ -106,12 +106,17 @@ export default function DashboardPage() {
   const reveal = useProgress(scannedAt);
 
   useEffect(() => {
-    const cached = loadScan(shop);
-    if (cached) {
+    let alive = true;
+    // Local cache first, else restore from the server (survives tab close / new device).
+    hydrateScan(shop).then((cached) => {
+      if (!alive || !cached) return;
       setStats(cached.stats);
       setImages(cached.images || []);
       setScannedAt(cached.scannedAt);
-    }
+    });
+    return () => {
+      alive = false;
+    };
   }, [shop]);
 
   const runScan = useCallback(async () => {

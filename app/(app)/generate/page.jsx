@@ -22,7 +22,7 @@ import {
   AlertCircle,
   Trash2,
 } from 'lucide-react';
-import { loadScan, patchImages } from '@/lib/scanStore';
+import { loadScan, patchImages, hydrateScan } from '@/lib/scanStore';
 import { authHeaders } from '@/lib/sessionToken';
 import { BASE_PATH } from '@/lib/basePath';
 import { sanitizeAlt } from '@/lib/sanitizeAlt';
@@ -204,8 +204,15 @@ export default function GeneratePage() {
   }, [shop, refresh]);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    let alive = true;
+    // Restore from server if this tab/device has no local cache, then render.
+    hydrateScan(shop).then(() => {
+      if (alive) refresh();
+    });
+    return () => {
+      alive = false;
+    };
+  }, [shop, refresh]);
 
   // Seed defaults from saved Settings (AI language + instructions + skip-existing).
   useEffect(() => {

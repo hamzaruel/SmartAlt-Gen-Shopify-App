@@ -15,7 +15,7 @@ import {
   Wand2,
   ArrowRight,
 } from 'lucide-react';
-import { loadScan } from '@/lib/scanStore';
+import { loadScan, hydrateScan } from '@/lib/scanStore';
 import { BASE_PATH } from '@/lib/basePath';
 
 const PAGE_SIZE = 12;
@@ -138,8 +138,13 @@ export default function ImagesPage() {
   const [allImages, setAllImages] = useState([]);
 
   useEffect(() => {
-    const cached = loadScan(shop);
-    setAllImages(cached?.images || []);
+    let alive = true;
+    hydrateScan(shop).then((cached) => {
+      if (alive) setAllImages(cached?.images || []);
+    });
+    return () => {
+      alive = false;
+    };
   }, [shop]);
 
   // back to first page whenever the tab or source filter changes
