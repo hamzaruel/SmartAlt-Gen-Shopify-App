@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { deleteShop } from "@/lib/db";
 import { clearSubscription } from "@/lib/billing/usage";
 import { deleteScanRow } from "@/lib/scanDb";
+import { deleteTasksForShop } from "@/lib/scheduledTasks";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,7 @@ export async function POST(req) {
       await deleteShop(shop);
       await clearSubscription(shop);
       await deleteScanRow(shop);
+      await deleteTasksForShop(shop);
       console.log("✅ shop/redact — erased all data for", shop);
     } catch (e) {
       console.error("shop/redact: cleanup failed", e);

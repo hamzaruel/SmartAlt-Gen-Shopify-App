@@ -130,6 +130,36 @@ WHAT WE DID (chronological + by area)
      is still "SmartAltGen". Merchant-facing UI already says "Alt Text Pro"
      (dashboard, footer, help, metadata title) from earlier edits.
 
+12. BULK EDIT + SCHEDULING (Hextom-style "Start now / Schedule later", auto-apply)
+   - Auto-write-back: a bulk run GENERATES alt text AND writes it to Shopify in one
+     pass (no separate Embed step). Runs server-side in the PM2 process.
+   - lib/bulkRun.js: runBulkEdit(shop, config) → offline token → getAllImages →
+     filter (sources / scope missing|all / skipExisting) → generate (AI via Gemini,
+     or template/title server-side) → embedAlts → meter usage + settle overflow.
+     Progress in its own Turso table `bulk_runs` (one row/shop), polled by the tab.
+   - Immediate: POST /api/bulk/start (fire-and-forget) → poll /api/bulk/status.
+   - Scheduling: lib/scheduledTasks.js + Turso `scheduled_tasks`. Recurrence
+     once|daily|weekly. The FIRST next_run_at is computed CLIENT-side (knows the
+     merchant tz) and stored as an absolute epoch; the server only ADDS 1d/1w for
+     recurring runs (no server tz math). API: /api/schedule (GET list, POST create,
+     DELETE remove). "Run now" just calls /api/bulk/start with the task's config.
+   - Scheduler: instrumentation.js register() → lib/scheduler.js startScheduler().
+     60s tick: getDueTasks (next_run_at<=now) → markRunning (atomic claim) →
+     runBulkEdit → finishRun (re-arm daily/weekly, or finish 'once'). Self-heals on
+     restart (state in Turso). Requires experimental.instrumentationHook=true in
+     next.config.js (added).
+   - UI: Alt-text-studio page gained a "Bulk edit & schedule" block (scope radios,
+     Start Bulk Editing, Schedule Bulk Editing with Once/Daily/Weekly + time) reusing
+     the existing type/mode/skip/AI-info/instructions controls, plus a "Scheduled
+     bulk edits" manager (list, run-now, delete). Bulk operates on the SELECTED type.
+   - TOKEN FIX (required for autonomous runs): shops table now has an `offline_token`
+     column (long-lived, captured at OAuth install, NEVER overwritten by the online-
+     token refresh in serverAuth). bulkRun/scheduler use getOfflineToken(shop).
+     ⚠️ Shops that installed BEFORE this change have no offline_token → getOfflineToken
+     falls back to the (short-lived) access_token, which works for immediate runs but
+     a scheduled run days later may hit an expired token. Fix: reinstall, or backfill.
+   - GDPR: app/uninstalled + shop/redact now also deleteTasksForShop(shop).
+
 ================================================================================
 DEPLOY A CODE CHANGE (standard sequence)
 ================================================================================
@@ -164,14 +194,18 @@ ENV VARS (server .env at /var/www/smart-alt-gen/.env)
 ================================================================================
 TURSO DATA MODEL (tables this app creates)
 ================================================================================
-  shops(shop PK, access_token, created_at)
+  shops(shop PK, access_token, offline_token, created_at)  -- offline_token = long-lived (install)
+  scheduled_tasks(id PK, shop, sources, mode, template, scope, skip_existing,
+                  info_fields, instructions, recurrence, time_label, next_run_at,
+                  status, last_run_at, last_summary, created_at)  -- bulk-edit schedules
+  bulk_runs(shop PK, status, phase, total, done, applied, errors, note, source, updated_at)
   subscriptions(...)            -- (legacy/light; entitlement now read live)
   usage(shop, cycle_start, ai_count, overflow_blocks_charged)   -- quota meter
   scans(shop PK, data, scanned_at, expires_at)                  -- Tier 1 persistence
   generation_jobs(shop PK, status, total, done, plan_id, ai_budget, cycle_key,
                   mode, instructions, info_fields, queue, error, updated_at)
   generation_results(shop, image_key, alt, seq, PK(shop,image_key))
-  GDPR: app/uninstalled + shop/redact delete shops + usage + scans for the shop.
+  GDPR: app/uninstalled + shop/redact delete shops + usage + scans + scheduled_tasks.
 
 ================================================================================
 REMAINING TODO

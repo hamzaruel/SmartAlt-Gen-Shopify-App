@@ -160,7 +160,7 @@
 
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { storeShop } from '@/lib/db';
+import { storeShop, storeOfflineToken } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 //new one test
@@ -295,6 +295,9 @@ if (!savedState || savedState !== state) {
     });
 
     const stored = await storeShop(shop, access_token);
+    // Capture the long-lived OFFLINE token (standard OAuth grant → non-expiring)
+    // so scheduled/background bulk-edit jobs can write to Shopify with no tab open.
+    await storeOfflineToken(shop, access_token);
 // 🔐 Register mandatory GDPR webhooks
 // const gdprTopics = [
  // { topic: 'CUSTOMERS_DATA_REQUEST', path: 'customers/data_request' },
