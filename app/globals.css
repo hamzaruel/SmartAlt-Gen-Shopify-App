@@ -187,6 +187,32 @@ code {
 .animate-float {
   animation: float 3s ease-in-out infinite;
 }
+/* Aurora drift — soft coloured glows that slowly breathe + wander behind the
+   hero, giving it depth without distracting. Two speeds so the blobs never
+   sync up. */
+@keyframes aurora {
+  0%, 100% { transform: translate(0, 0) scale(1);      opacity: 0.55; }
+  50%      { transform: translate(22px, -16px) scale(1.12); opacity: 0.9; }
+}
+.animate-aurora      { animation: aurora 9s ease-in-out infinite; }
+.animate-aurora-slow { animation: aurora 13s ease-in-out infinite; }
+/* Slow conic shimmer for the hero badge ring. */
+@keyframes badge-shimmer {
+  to { background-position: 200% center; }
+}
+.animate-badge-shimmer {
+  background-size: 200% auto;
+  animation: badge-shimmer 4s linear infinite;
+}
+/* Honour user motion preferences for the purely-decorative hero motion. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-aurora,
+  .animate-aurora-slow,
+  .animate-badge-shimmer,
+  .animate-float {
+    animation: none !important;
+  }
+}
 /* ===== Desktop (default) ===== */
 .sitemap-logo-wrapper {
   position: absolute;

@@ -26,6 +26,9 @@ import {
   Clock,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
+  ShieldCheck,
+  Zap,
 } from 'lucide-react';
 
 const SOURCES = [
@@ -209,38 +212,75 @@ export default function DashboardPage() {
       ) : null}
 
       {/* ===== HERO ===== */}
-      <section className="rounded-2xl bg-gradient-to-b from-indigo-50 to-white px-6 py-12 text-center sm:py-14">
-        <h1 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-[40px]">
-          Every image, properly described
-        </h1>
-        <p className="mx-auto mt-3 max-w-xl text-base text-slate-600">
-          <span className="font-semibold text-indigo-600">Alt Text Pro</span>
-          <span className="mx-1.5 text-slate-300">•</span>
-          Alt text for every image
-        </p>
+      <section className="relative isolate overflow-hidden rounded-3xl bg-gradient-to-br from-[#1e1b4b] via-[#312e81] to-[#4c1d95] px-6 py-14 text-center shadow-xl shadow-indigo-950/30 ring-1 ring-white/10 sm:py-16">
+        {/* aurora glows */}
+        <div aria-hidden className="pointer-events-none absolute -left-20 -top-24 h-72 w-72 rounded-full bg-indigo-500/40 blur-3xl animate-aurora" />
+        <div aria-hidden className="pointer-events-none absolute -bottom-28 -right-12 h-80 w-80 rounded-full bg-fuchsia-500/30 blur-3xl animate-aurora-slow" />
+        <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/3 h-56 w-56 -translate-x-1/2 rounded-full bg-violet-400/20 blur-3xl" />
+        {/* subtle dotted grid, faded toward the edges */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.07)_1px,transparent_1px)] [background-size:22px_22px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_72%)]"
+        />
 
-        <div className="mt-8 flex justify-center">
-          <button
-            onClick={runScan}
-            disabled={!shop || scanning}
-            className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-8 py-3.5 text-base font-semibold text-white shadow-md shadow-indigo-500/20 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/40 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md"
-          >
-            {/* light sheen that sweeps across on hover */}
-            <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
-            <span className="relative flex items-center gap-2">
-              {scanning ? <Search className="h-5 w-5 animate-scan" /> : <ScanLine className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />}
-              {scanning ? 'Scanning…' : 'Scan now'}
+        <div className="relative">
+          {/* eyebrow badge */}
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-xs font-medium text-indigo-100 shadow-sm backdrop-blur-sm">
+            <Sparkles className="h-3.5 w-3.5 text-fuchsia-300" />
+            AI-powered alt text
+            <span className="h-1 w-1 rounded-full bg-white/30" />
+            WCAG 2.1 compliant
+          </span>
+
+          <h1 className="mx-auto mt-5 max-w-2xl text-4xl font-bold tracking-tight text-white sm:text-[44px] sm:leading-[1.08]">
+            Every image,{' '}
+            <span className="bg-gradient-to-r from-indigo-200 via-fuchsia-200 to-violet-200 bg-clip-text text-transparent">
+              properly described
             </span>
-          </button>
-        </div>
+          </h1>
+          <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-indigo-100/80">
+            Scan your whole store, generate accessible alt text in one click, and write it
+            straight back to Shopify — for products, files &amp; blog images.
+          </p>
 
-        {scanning ? (
-          <p className="mt-3 text-sm text-slate-600">This can take a moment on large stores.</p>
-        ) : scannedAt ? (
-          <p className="mt-3 text-sm text-slate-600">Last scanned {new Date(scannedAt).toLocaleString()}</p>
-        ) : (
-          <p className="mt-3 text-sm text-slate-600">Scans your products, files &amp; blog images in one click.</p>
-        )}
+          <div className="mt-8 flex justify-center">
+            <button
+              onClick={runScan}
+              disabled={!shop || scanning}
+              className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-white px-8 py-3.5 text-base font-semibold text-indigo-700 shadow-lg shadow-indigo-950/40 ring-1 ring-white/60 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-xl hover:shadow-fuchsia-500/25 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-indigo-900 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-lg"
+            >
+              {/* light sheen that sweeps across on hover */}
+              <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-indigo-200/40 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
+              <span className="relative flex items-center gap-2">
+                {scanning ? <Search className="h-5 w-5 animate-scan" /> : <ScanLine className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />}
+                {scanning ? 'Scanning…' : 'Scan now'}
+              </span>
+            </button>
+          </div>
+
+          {scanning ? (
+            <p className="mt-4 text-sm text-indigo-200/75">This can take a moment on large stores.</p>
+          ) : scannedAt ? (
+            <p className="mt-4 text-sm text-indigo-200/75">Last scanned {new Date(scannedAt).toLocaleString()}</p>
+          ) : (
+            <p className="mt-4 text-sm text-indigo-200/75">Scans your products, files &amp; blog images in one click.</p>
+          )}
+
+          {/* trust row */}
+          <div className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-medium text-indigo-200/70">
+            <span className="inline-flex items-center gap-1.5">
+              <Zap className="h-3.5 w-3.5 text-fuchsia-300" /> One-click write-back
+            </span>
+            <span className="hidden h-1 w-1 rounded-full bg-white/20 sm:inline-block" />
+            <span className="inline-flex items-center gap-1.5">
+              <Wand2 className="h-3.5 w-3.5 text-violet-300" /> AI-generated descriptions
+            </span>
+            <span className="hidden h-1 w-1 rounded-full bg-white/20 sm:inline-block" />
+            <span className="inline-flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5 text-indigo-200" /> Under 120 characters
+            </span>
+          </div>
+        </div>
       </section>
 
       {/* ===== Disabled-sources note (some sources turned off in Settings) ===== */}
