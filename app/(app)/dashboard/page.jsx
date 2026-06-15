@@ -212,7 +212,9 @@ export default function DashboardPage() {
       ) : null}
 
       {/* ===== HERO ===== */}
-      <section className="relative isolate overflow-hidden rounded-3xl bg-gradient-to-br from-[#1e1b4b] via-[#312e81] to-[#4c1d95] px-6 py-14 text-center shadow-xl shadow-indigo-950/30 ring-1 ring-white/10 sm:py-16">
+      {/* Breaks out to the container edges (-mx) so it reads a touch wider than the
+          cards below, and keeps the vertical rhythm tight (no dead whitespace). */}
+      <section className="relative isolate -mx-4 overflow-hidden rounded-3xl bg-gradient-to-br from-[#1e1b4b] via-[#312e81] to-[#4c1d95] px-6 py-9 text-center shadow-xl shadow-indigo-950/30 ring-1 ring-white/10 sm:-mx-6 sm:py-10 lg:-mx-10">
         {/* aurora glows */}
         <div aria-hidden className="pointer-events-none absolute -left-20 -top-24 h-72 w-72 rounded-full bg-indigo-500/40 blur-3xl animate-aurora" />
         <div aria-hidden className="pointer-events-none absolute -bottom-28 -right-12 h-80 w-80 rounded-full bg-fuchsia-500/30 blur-3xl animate-aurora-slow" />
@@ -232,18 +234,18 @@ export default function DashboardPage() {
             WCAG 2.1 compliant
           </span>
 
-          <h1 className="mx-auto mt-5 max-w-2xl text-4xl font-bold tracking-tight text-white sm:text-[44px] sm:leading-[1.08]">
+          <h1 className="mx-auto mt-4 max-w-3xl text-4xl font-bold tracking-tight text-white sm:text-[46px] sm:leading-[1.05]">
             Every image,{' '}
             <span className="bg-gradient-to-r from-indigo-200 via-fuchsia-200 to-violet-200 bg-clip-text text-transparent">
               properly described
             </span>
           </h1>
-          <p className="mx-auto mt-4 max-w-lg text-base leading-relaxed text-indigo-100/80">
+          <p className="mx-auto mt-3 max-w-xl text-base leading-relaxed text-indigo-100/80">
             Scan your whole store, generate accessible alt text in one click, and write it
             straight back to Shopify — for products, files &amp; blog images.
           </p>
 
-          <div className="mt-8 flex justify-center">
+          <div className="mt-6 flex justify-center">
             <button
               onClick={runScan}
               disabled={!shop || scanning}
@@ -259,15 +261,15 @@ export default function DashboardPage() {
           </div>
 
           {scanning ? (
-            <p className="mt-4 text-sm text-indigo-200/75">This can take a moment on large stores.</p>
+            <p className="mt-3.5 text-sm text-indigo-200/75">This can take a moment on large stores.</p>
           ) : scannedAt ? (
-            <p className="mt-4 text-sm text-indigo-200/75">Last scanned {new Date(scannedAt).toLocaleString()}</p>
+            <p className="mt-3.5 text-sm text-indigo-200/75">Last scanned {new Date(scannedAt).toLocaleString()}</p>
           ) : (
-            <p className="mt-4 text-sm text-indigo-200/75">Scans your products, files &amp; blog images in one click.</p>
+            <p className="mt-3.5 text-sm text-indigo-200/75">Scans your products, files &amp; blog images in one click.</p>
           )}
 
           {/* trust row */}
-          <div className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-medium text-indigo-200/70">
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-medium text-indigo-200/70">
             <span className="inline-flex items-center gap-1.5">
               <Zap className="h-3.5 w-3.5 text-fuchsia-300" /> One-click write-back
             </span>
