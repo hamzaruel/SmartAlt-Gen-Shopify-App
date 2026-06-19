@@ -589,15 +589,23 @@ export default function GeneratePage() {
       const data = await res.json();
       if (data.status === 'idle') { stopBulkPolling(); setBulkBusy(false); setBulkRun(null); return; }
       setBulkRun(data);
-      if (data.status === 'done' || data.status === 'error') {
+      const paused = data.status === 'paused_quota' || data.status === 'paused_service';
+      if (data.status === 'done' || data.status === 'error' || paused) {
         stopBulkPolling();
         setBulkBusy(false);
-        // Reflect the applied changes locally so the audit/preview update.
+        // Reflect any applied changes locally so the audit/preview update.
         await hydrateScan(shop);
         refresh();
         if (data.applied) logActivity(shop, { type: 'embed', count: data.applied });
-        if (data.status === 'error') setError(data.note || 'Bulk edit stopped.');
-        else setMessage(data.note || 'Bulk edit complete.');
+        if (paused) {
+          // Parked server-side; the scheduler auto-resumes (no tab needed).
+          if (data.status === 'paused_quota' && /upgrade/i.test(data.note || '')) setUpgrade(true);
+          setMessage(data.note || 'Bulk edit paused — it will resume automatically.');
+        } else if (data.status === 'error') {
+          setError(data.note || 'Bulk edit stopped.');
+        } else {
+          setMessage(data.note || 'Bulk edit complete.');
+        }
       }
     } catch { /* transient — keep polling */ }
   }, [shop, stopBulkPolling, refresh]);
