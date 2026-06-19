@@ -33,6 +33,8 @@ export async function GET(request) {
       status: job.status,
       total: Number(job.total),
       done: Number(job.done),
+      failed: Number(job.failed) || 0,
+      resumeAt: Number(job.resume_at) || 0,
       error: job.error || null,
       results,
     });

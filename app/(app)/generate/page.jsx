@@ -196,6 +196,8 @@ export default function GeneratePage() {
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
   const [genProgress, setGenProgress] = useState(null); // { done, total } while AI generating
+  const [genFailed, setGenFailed] = useState(0); // permanently-failed images (after 3 tries)
+  const [retrying, setRetrying] = useState(false);
   const [upgrade, setUpgrade] = useState(false); // show "upgrade your plan" when AI quota is hit
 
   // ---- Bulk edit (auto-apply) + scheduling ----
@@ -253,18 +255,28 @@ export default function GeneratePage() {
         refresh();
       }
       setGenProgress({ done: data.done || 0, total: data.total || 0 });
-      if (data.status === 'done' || data.status === 'error' || data.status === 'cancelled') {
+      setGenFailed(data.failed || 0);
+      const paused = data.status === 'paused_quota' || data.status === 'paused_service';
+      if (data.status === 'done' || data.status === 'error' || data.status === 'cancelled' || paused) {
         stopPolling();
         setBusy(null);
         setGenProgress(null);
-        if (data.status === 'error') {
+        if (paused) {
+          // Job is parked server-side; the scheduler auto-resumes it (no tab needed).
+          if (data.status === 'paused_quota' && /upgrade/i.test(data.error || '')) setUpgrade(true);
+          setMessage(data.error || 'Generation paused — it will resume automatically.');
+        } else if (data.status === 'error') {
           setError(data.error || 'Generation stopped.');
           if (/limit|upgrade/i.test(data.error || '')) setUpgrade(true);
         } else if (data.status === 'cancelled') {
           setMessage('Generation stopped. Already-generated alt text is saved.');
         } else {
           if (data.done) logActivity(shop, { type: 'generate', count: data.done, method: 'ai' });
-          setMessage('Alt text generated. Click “Embed all” to apply.');
+          setMessage(
+            data.failed
+              ? `Alt text generated. ${data.failed} image${data.failed === 1 ? '' : 's'} couldn’t be generated — use “Retry failed”. Click “Embed all” to apply the rest.`
+              : 'Alt text generated. Click “Embed all” to apply.',
+          );
         }
       }
     } catch {
@@ -290,9 +302,16 @@ export default function GeneratePage() {
           { headers: await authHeaders() },
         );
         const data = await res.json();
-        if (alive && data.status === 'running') {
+        if (!alive) return;
+        if (data.status === 'running') {
           seqRef.current = 0;
           startBackgroundPolling();
+        } else {
+          // Not running: surface a lingering failed count / paused state on return.
+          if (data.failed) setGenFailed(data.failed);
+          if ((data.status === 'paused_quota' || data.status === 'paused_service') && data.error) {
+            setMessage(data.error);
+          }
         }
       } catch {
         /* ignore */
@@ -437,6 +456,32 @@ export default function GeneratePage() {
         setError(e.message || 'Could not start generation.');
         setBusy(null);
       }
+    }
+  }
+
+  // Re-queue every permanently-failed image for another pass (server-side).
+  async function retryFailedImages() {
+    setRetrying(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await fetch(`${BASE_PATH}/api/generate/retry?shop=${encodeURIComponent(shop)}`, {
+        method: 'POST',
+        headers: await authHeaders(),
+      });
+      const data = await res.json();
+      if (data.error || data.status !== 'running') {
+        setError(data.error || 'Could not retry failed images.');
+        return;
+      }
+      seqRef.current = 0;
+      setGenFailed(0);
+      setMessage('Retrying the images that failed — this runs in the background.');
+      startBackgroundPolling();
+    } catch (e) {
+      setError(e.message || 'Could not retry failed images.');
+    } finally {
+      setRetrying(false);
     }
   }
 
@@ -999,6 +1044,26 @@ export default function GeneratePage() {
                 style={{ width: `${genProgress.total ? Math.round((genProgress.done / genProgress.total) * 100) : 0}%` }}
               />
             </div>
+          </div>
+        ) : null}
+
+        {/* permanently-failed images (after 3 tries) — offer a re-queue */}
+        {genFailed > 0 && !genProgress ? (
+          <div className="mt-3 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 shadow-sm sm:flex-row sm:items-center">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+              <AlertCircle className="h-4 w-4" />
+            </span>
+            <span className="flex-1 text-sm font-medium text-amber-900">
+              {genFailed} image{genFailed === 1 ? '' : 's'} couldn’t be generated after {3} tries.
+            </span>
+            <button
+              onClick={retryFailedImages}
+              disabled={retrying || busy !== null}
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-amber-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {retrying ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              Retry failed
+            </button>
           </div>
         ) : null}
 
