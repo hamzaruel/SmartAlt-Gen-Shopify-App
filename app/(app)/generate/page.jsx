@@ -55,6 +55,15 @@ const TEMPLATES = [
 // types) don't have product type/vendor, so template / AI-custom don't apply there —
 // only AI (recommended) and the item's own title make sense.
 function editOptionsFor(type) {
+  if (type === 'all') {
+    // Mixed types: product-only options (template / vendor) do not apply across
+    // collections, posts and files, so we keep the universally safe choices.
+    return [
+      { value: 'ai', label: 'Generate alt text with AI (recommended)' },
+      { value: 'title', label: "Use each item's own title as alt text" },
+      { value: 'remove', label: 'Remove alt-text' },
+    ];
+  }
   if (type === 'article') {
     return [
       { value: 'ai', label: 'Generate alt text with AI (recommended)' },
@@ -187,7 +196,8 @@ export default function GeneratePage() {
   const [editMode, setEditMode] = useState(''); // '' until the merchant chooses
   const [templateChoice, setTemplateChoice] = useState(0);
   const [customTemplate, setCustomTemplate] = useState('');
-  const [skipExisting, setSkipExisting] = useState(false);
+  const [applyTo, setApplyTo] = useState(['MISSING', 'NEEDS_IMPROVEMENT']); // which status groups to generate for
+  const [defaultApplyTo, setDefaultApplyTo] = useState(['MISSING', 'NEEDS_IMPROVEMENT']); // from Preferences — pre-ticked states
   const [infoFields, setInfoFields] = useState(['title']); // AI custom: what to feed the model
   const [instructions, setInstructions] = useState('');
   const [aiLanguage, setAiLanguage] = useState(''); // from Settings — language for AI alt text
@@ -334,13 +344,24 @@ export default function GeneratePage() {
     };
   }, [shop, refresh]);
 
-  // Seed defaults from saved Settings (AI language + instructions + skip-existing).
+  // Seed defaults from saved Settings (AI language, instructions, default selection).
   useEffect(() => {
     const s = loadSettings(shop);
     setAiLanguage(s.aiLanguage || '');
     setInstructions(s.aiInstructions || '');
-    setSkipExisting(!!s.skipExisting);
+    setDefaultApplyTo(s.defaultApplyTo);
   }, [shop]);
+
+  // Pre-tick the status groups the merchant chose in Preferences (defaultApplyTo),
+  // but only the ones that are actually present in the chosen type. Re-runs when the
+  // type changes, the scan loads, or the saved default changes; a status-only change
+  // (generate/embed keep the image count the same) won't override a manual choice.
+  useEffect(() => {
+    if (!selected) return;
+    const m = selected === 'all' ? allImages : allImages.filter((i) => i.source === selected);
+    const present = new Set(m.map((i) => i.status));
+    setApplyTo(defaultApplyTo.filter((s) => present.has(s)));
+  }, [selected, allImages.length, defaultApplyTo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Restore the chosen type + edit mode on mount, so navigating away and coming
   // back keeps your selection and the generated results (instead of clearing it).
@@ -362,23 +383,42 @@ export default function GeneratePage() {
   const noScan = !loadScan(shop);
   const countBySource = (src) => allImages.filter((i) => i.source === src).length;
 
-  const matching = selected ? allImages.filter((i) => i.source === selected) : [];
+  const matching = selected ? (selected === 'all' ? allImages : allImages.filter((i) => i.source === selected)) : [];
   const totalPages = Math.max(1, Math.ceil(matching.length / PAGE_SIZE));
   const pageSafe = Math.min(page, totalPages - 1);
   const pageItems = matching.slice(pageSafe * PAGE_SIZE, pageSafe * PAGE_SIZE + PAGE_SIZE);
-  const selectedLabel = TYPES.find((t) => t.id === selected)?.label || '';
+  const selectedLabel = selected === 'all' ? 'images' : TYPES.find((t) => t.id === selected)?.label || '';
   const selMissing = matching.filter((i) => i.status === 'MISSING').length;
   const selNeeds = matching.filter((i) => i.status === 'NEEDS_IMPROVEMENT').length;
   const selOptimized = matching.filter((i) => i.status === 'OPTIMIZED').length;
+
+  // "Apply to" status groups (checkboxes), with live counts + a dynamic status line.
+  const APPLY_GROUPS = [
+    { id: 'MISSING', label: 'Missing', count: selMissing, dot: 'bg-rose-500' },
+    { id: 'NEEDS_IMPROVEMENT', label: 'Needs work', count: selNeeds, dot: 'bg-amber-500' },
+    { id: 'OPTIMIZED', label: 'Optimized', count: selOptimized, dot: 'bg-emerald-500' },
+  ];
+  const availableGroups = APPLY_GROUPS.filter((g) => g.count > 0);
+  const allAvailableChecked = availableGroups.length > 0 && availableGroups.every((g) => applyTo.includes(g.id));
+  let applyStatusLine;
+  if (selMissing === 0 && selNeeds === 0) {
+    applyStatusLine = `Great, all ${selectedLabel.toLowerCase()} already have clean alt text. Nothing to generate here.`;
+  } else {
+    const parts = [];
+    if (selMissing > 0) parts.push(`${selMissing} missing alt text`);
+    if (selNeeds > 0) parts.push(`${selNeeds} need improvement`);
+    if (selOptimized > 0) parts.push(`${selOptimized} already optimized`);
+    applyStatusLine = `${parts.join(', ')}. Tick the groups you want to generate for.`;
+  }
   // jump into Image audit at a status tab, pre-filtered to the selected source
   const auditHref = (statusTab) =>
     `${BASE_PATH}/images?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}&tab=${statusTab}&source=${selected || 'all'}`;
 
   const activeTemplate = templateChoice === 'custom' ? customTemplate : TEMPLATES[templateChoice];
   const hasAlt = (i) => i.currentAlt && i.currentAlt.trim() !== '';
-  const editTargets = skipExisting ? matching.filter((i) => !hasAlt(i)) : matching;
+  const editTargets = matching.filter((i) => applyTo.includes(i.status)); // only the chosen status groups
   const removeTargets = matching.filter(hasAlt); // for "Remove alt-text"
-  const hasSuggestions = allImages.some((i) => i.suggestedAlt && i.source === selected);
+  const hasSuggestions = allImages.some((i) => i.suggestedAlt && (selected === 'all' || i.source === selected));
 
   // Generated results (selected type, now carrying a suggestedAlt) — paginated.
   const generated = matching.filter((i) => i.suggestedAlt);
@@ -491,7 +531,7 @@ export default function GeneratePage() {
     setMessage(null);
     try {
       const items = allImages
-        .filter((i) => i.suggestedAlt && i.source === selected)
+        .filter((i) => i.suggestedAlt && (selected === 'all' || i.source === selected))
         .map((i) => ({ key: i.key, source: i.source, id: i.id, url: i.url, alt: i.suggestedAlt }));
       const res = await fetch(`${BASE_PATH}/api/apply?shop=${encodeURIComponent(shop)}`, {
         method: 'POST',
@@ -739,7 +779,7 @@ export default function GeneratePage() {
   const bulkPct = bulkRun?.total ? Math.round((bulkRun.done / bulkRun.total) * 100) : 0;
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       <header className="animate-card-in flex items-center gap-4 rounded-2xl bg-gradient-to-br from-indigo-50 to-white p-6">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
           <Wand2 className="h-5 w-5" />
@@ -754,6 +794,30 @@ export default function GeneratePage() {
       <section className="animate-fade-in">
         <SectionTitle icon={Layers} desc="Choose which kind of images you want to work on. The number shows how many of each are in your store.">Select which type of images to edit</SectionTitle>
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          {/* Apply-to-all checkbox, top right. Ticking it selects every type at once;
+              the counts below + in "Apply to which images" update automatically. */}
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="text-sm text-slate-500">Pick a type, or tick to work on everything.</p>
+            <label className="flex shrink-0 cursor-pointer items-center gap-2 text-sm font-medium text-slate-700">
+              <input
+                type="checkbox"
+                checked={selected === 'all'}
+                onChange={(e) => {
+                  const next = e.target.checked ? 'all' : null;
+                  setSelected(next);
+                  setPage(0);
+                  setGenPage(0);
+                  setShowPreview(false);
+                  setEditMode('');
+                  sessionStorage.removeItem(`smartaltgen:genmode:${shop}`);
+                  if (next) sessionStorage.setItem(`smartaltgen:gentype:${shop}`, next);
+                  else sessionStorage.removeItem(`smartaltgen:gentype:${shop}`);
+                }}
+                className="h-4 w-4 rounded border-slate-300 accent-indigo-600"
+              />
+              Apply to all
+            </label>
+          </div>
           <div className="flex flex-wrap gap-2.5">
             {TYPES.map(({ id, label, icon: Icon }) => {
               const active = selected === id;
@@ -790,7 +854,7 @@ export default function GeneratePage() {
 
         {selected ? (
           <div className="mt-3">
-            <p className="text-sm text-slate-500">Alt text status for this type. Click any number to view those images in the audit.</p>
+            <p className="text-sm text-slate-500">{selected === 'all' ? 'Alt text status across all image types' : 'Alt text status for this type'}. Click any number to view those images in the audit.</p>
             <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm">
             <span className="font-medium text-slate-700">{matching.length} {selectedLabel.toLowerCase()}</span>
             <a href={auditHref('MISSING')} className="inline-flex items-center gap-1.5 text-rose-600 underline-offset-2 hover:underline">
@@ -901,7 +965,65 @@ export default function GeneratePage() {
 
           <Divider />
 
-          {/* ===== 3 · Edit ===== */}
+          {/* ===== 3 · Apply to ===== */}
+          <section className="animate-fade-in">
+            <SectionTitle icon={ListChecks} desc="Pick which images to generate alt text for. We tick the ones that need it; you can change this.">Apply to which images</SectionTitle>
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              {selected ? (
+                <>
+                  {availableGroups.length > 1 ? (
+                    <div className="mb-3 flex justify-end">
+                      <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-500">
+                        <input
+                          type="checkbox"
+                          checked={allAvailableChecked}
+                          onChange={(e) => setApplyTo(e.target.checked ? availableGroups.map((g) => g.id) : [])}
+                          className="h-3.5 w-3.5 rounded border-slate-300 accent-indigo-600"
+                        />
+                        Select all
+                      </label>
+                    </div>
+                  ) : null}
+
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                    {APPLY_GROUPS.map(({ id, label, count, dot }) => {
+                      const on = applyTo.includes(id);
+                      const disabled = count === 0;
+                      return (
+                        <label
+                          key={id}
+                          className={`inline-flex items-center gap-2 text-sm ${
+                            disabled ? 'cursor-not-allowed text-slate-400' : 'cursor-pointer text-slate-700'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={on}
+                            disabled={disabled}
+                            onChange={() =>
+                              setApplyTo((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]))
+                            }
+                            className="h-4 w-4 rounded border-slate-300 accent-indigo-600"
+                          />
+                          <span className={`h-2 w-2 rounded-full ${disabled ? 'bg-slate-200' : dot}`} />
+                          <span className="font-medium">{label}</span>
+                          <span className="text-xs text-slate-500">({count})</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+
+                  <p className="mt-3 text-xs text-slate-500">{applyStatusLine}</p>
+                </>
+              ) : (
+                <p className="text-sm text-slate-500">Select an image type first.</p>
+              )}
+            </div>
+          </section>
+
+          <Divider />
+
+          {/* ===== 4 · Edit ===== */}
           <section className="animate-fade-in">
             <SectionTitle icon={Wand2} desc="Choose how to create the alt text: a template, the item title, or AI.">Edit matching images</SectionTitle>
             <div className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -999,14 +1121,6 @@ export default function GeneratePage() {
               ) : (
                 <p className="text-sm text-slate-500">Select an option above to continue.</p>
               )}
-
-              {editMode && editMode !== 'remove' ? (
-                <label className="flex cursor-pointer items-center gap-2.5 border-t border-slate-100 pt-4 text-sm text-slate-700">
-                  <input type="checkbox" checked={skipExisting} onChange={(e) => setSkipExisting(e.target.checked)}
-                    className="h-4 w-4 rounded border-slate-300 accent-indigo-600" />
-                  Skip images that already have alt-text
-                </label>
-              ) : null}
             </div>
           </section>
 

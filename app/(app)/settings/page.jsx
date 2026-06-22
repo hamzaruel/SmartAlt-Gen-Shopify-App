@@ -26,6 +26,13 @@ const LANGUAGES = [
   'Dutch', 'Arabic', 'Hindi', 'Chinese (Simplified)', 'Japanese',
 ];
 
+// Which alt-text states the studio pre-ticks under "Apply to which images".
+const STATUS_TOGGLES = [
+  { id: 'MISSING', label: 'Missing alt text', dot: 'bg-rose-500' },
+  { id: 'NEEDS_IMPROVEMENT', label: 'Needs improvement', dot: 'bg-amber-500' },
+  { id: 'OPTIMIZED', label: 'Already optimized', dot: 'bg-emerald-500' },
+];
+
 function Toggle({ checked, onChange }) {
   return (
     <button
@@ -53,7 +60,7 @@ export default function SettingsPage() {
   const [scanSources, setScanSources] = useState(['product', 'file', 'article', 'collection']);
   const [aiLanguage, setAiLanguage] = useState('');
   const [aiInstructions, setAiInstructions] = useState('');
-  const [skipExisting, setSkipExisting] = useState(false);
+  const [defaultApplyTo, setDefaultApplyTo] = useState(['MISSING', 'NEEDS_IMPROVEMENT']);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -61,7 +68,7 @@ export default function SettingsPage() {
     setScanSources(s.scanSources);
     setAiLanguage(s.aiLanguage || '');
     setAiInstructions(s.aiInstructions);
-    setSkipExisting(s.skipExisting);
+    setDefaultApplyTo(s.defaultApplyTo);
   }, [shop]);
 
   const toggleSource = (id) => {
@@ -69,9 +76,14 @@ export default function SettingsPage() {
     setScanSources((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
   };
 
+  const toggleStatus = (id) => {
+    setSaved(false);
+    setDefaultApplyTo((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
+  };
+
   const save = () => {
     const sources = scanSources.length ? scanSources : ['product', 'file', 'article', 'collection'];
-    saveSettings(shop, { scanSources: sources, aiLanguage, aiInstructions, skipExisting });
+    saveSettings(shop, { scanSources: sources, aiLanguage, aiInstructions, defaultApplyTo });
     setScanSources(sources);
     setSaved(true);
   };
@@ -147,15 +159,22 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* ===== Generation defaults ===== */}
+      {/* ===== Default selection ===== */}
       <section className="animate-fade-in space-y-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-sm font-semibold text-slate-800">Generation</h2>
-        <div className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3">
-          <span className="text-sm font-medium text-slate-700">
-            Skip images that already have alt text
-            <span className="mt-0.5 block text-xs font-normal text-slate-500">Only generate for images that are missing alt text.</span>
-          </span>
-          <Toggle checked={skipExisting} onChange={(v) => { setSaved(false); setSkipExisting(v); }} />
+        <div>
+          <h2 className="text-sm font-semibold text-slate-800">Default selection</h2>
+          <p className="mt-0.5 text-sm text-slate-600">When you open the studio, these alt text states are ticked automatically under “Apply to which images.” You can still change the selection each time.</p>
+        </div>
+        <div className="space-y-2.5">
+          {STATUS_TOGGLES.map(({ id, label, dot }) => (
+            <div key={id} className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3">
+              <span className="flex items-center gap-2.5 text-sm font-medium text-slate-700">
+                <span className={`h-2.5 w-2.5 rounded-full ${dot}`} />
+                {label}
+              </span>
+              <Toggle checked={defaultApplyTo.includes(id)} onChange={() => toggleStatus(id)} />
+            </div>
+          ))}
         </div>
       </section>
 
