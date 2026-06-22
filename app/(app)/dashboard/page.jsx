@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   ScanLine,
   ArrowRight,
   Loader2,
   X,
+  Sparkles,
   Search,
   MousePointerClick,
   Wand2,
@@ -41,10 +42,10 @@ import { loadSettings } from '@/lib/settings';
 import { loadActivity, logActivity, relativeTime } from '@/lib/activity';
 
 const STEPS = [
-  { title: 'Scan', text: 'Find every image across products, collections, blogs and files, and see which need alt text.', icon: Search, ring: 'bg-sky-100 text-sky-600' },
-  { title: 'Choose', text: 'Pick an image type and how to edit: a custom template or AI.', icon: MousePointerClick, ring: 'bg-indigo-100 text-indigo-600' },
-  { title: 'Generate', text: 'Get clean, accessible alt text under 120 characters.', icon: Wand2, ring: 'bg-violet-100 text-violet-600' },
-  { title: 'Embed', text: 'Save the alt text straight back into Shopify in one click.', icon: UploadCloud, ring: 'bg-emerald-100 text-emerald-600' },
+  { title: 'Scan', text: 'Find every image across products, collections, blogs and files, and see which need alt text.', icon: Search, grad: 'from-sky-500 to-sky-600 shadow-sky-500/30' },
+  { title: 'Choose', text: 'Pick an image type and how to edit: a custom template or AI.', icon: MousePointerClick, grad: 'from-indigo-500 to-indigo-600 shadow-indigo-500/30' },
+  { title: 'Generate', text: 'Get clean, accessible alt text under 120 characters.', icon: Wand2, grad: 'from-violet-500 to-violet-600 shadow-violet-500/30' },
+  { title: 'Embed', text: 'Save the alt text straight back into Shopify in one click.', icon: UploadCloud, grad: 'from-emerald-500 to-emerald-600 shadow-emerald-500/30' },
 ];
 
 function Divider() {
@@ -52,10 +53,10 @@ function Divider() {
 }
 
 const ACTIVITY_META = {
-  scan:     { icon: ScanLine,    chip: 'bg-sky-100 text-sky-600',         text: (a) => `Scanned your store, ${(a.count || 0).toLocaleString()} image${a.count === 1 ? '' : 's'} found` },
-  generate: { icon: Wand2,       chip: 'bg-violet-100 text-violet-600',   text: (a) => `Generated alt text for ${a.count} image${a.count === 1 ? '' : 's'}` },
-  embed:    { icon: UploadCloud, chip: 'bg-emerald-100 text-emerald-600', text: (a) => `Saved alt text to ${a.count} image${a.count === 1 ? '' : 's'} in Shopify` },
-  clear:    { icon: Trash2,      chip: 'bg-rose-100 text-rose-600',       text: (a) => `Cleared alt text from ${a.count} image${a.count === 1 ? '' : 's'}` },
+  scan:     { icon: ScanLine,    chip: 'bg-sky-100 text-sky-600',         grad: 'from-sky-500 to-sky-600 shadow-sky-500/30',         tag: 'Scan',     text: (a) => `Scanned your store, ${(a.count || 0).toLocaleString()} image${a.count === 1 ? '' : 's'} found` },
+  generate: { icon: Wand2,       chip: 'bg-violet-100 text-violet-600',   grad: 'from-violet-500 to-violet-600 shadow-violet-500/30',   tag: 'Generate', text: (a) => `Generated alt text for ${a.count} image${a.count === 1 ? '' : 's'}` },
+  embed:    { icon: UploadCloud, chip: 'bg-emerald-100 text-emerald-600', grad: 'from-emerald-500 to-emerald-600 shadow-emerald-500/30', tag: 'Embed',    text: (a) => `Saved alt text to ${a.count} image${a.count === 1 ? '' : 's'} in Shopify` },
+  clear:    { icon: Trash2,      chip: 'bg-rose-100 text-rose-600',       grad: 'from-rose-500 to-rose-600 shadow-rose-500/30',       tag: 'Clear',    text: (a) => `Cleared alt text from ${a.count} image${a.count === 1 ? '' : 's'}` },
 };
 
 const easeOutCubic = (x) => 1 - Math.pow(1 - x, 3);
@@ -95,6 +96,17 @@ export default function DashboardPage() {
   const [disabledLabels, setDisabledLabels] = useState([]); // sources turned off in Settings
   const [activity, setActivity] = useState([]); // recent activity log (newest-first)
   const [actPage, setActPage] = useState(0);    // activity pagination
+
+  const overviewRef = useRef(null);             // scroll target after a fresh scan
+  const [pendingScroll, setPendingScroll] = useState(false);
+
+  // After a fresh scan finishes and the overview renders, smooth-scroll it into view.
+  useEffect(() => {
+    if (pendingScroll && !scanning && overviewRef.current) {
+      overviewRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setPendingScroll(false);
+    }
+  }, [pendingScroll, scanning]);
 
   useEffect(() => {
     const enabled = loadSettings(shop).scanSources;
@@ -153,6 +165,7 @@ export default function DashboardPage() {
       setScannedAt(saved.scannedAt);
       logActivity(shop, { type: 'scan', count: all.length });
       setActivity(loadActivity(shop));
+      setPendingScroll(true); // auto-focus the overview once it renders
     } catch (e) {
       setError(e.message || 'Scan failed');
     } finally {
@@ -208,39 +221,62 @@ export default function DashboardPage() {
         </div>
       ) : null}
 
-      {/* ===== HERO ===== */}
-      <section className="rounded-2xl bg-gradient-to-b from-indigo-50 to-white px-6 py-12 text-center sm:py-14">
-        <h1 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-[40px]">
-          Every image, properly described
-        </h1>
-        <p className="mx-auto mt-3 max-w-xl text-base text-slate-600">
-          <span className="font-semibold text-indigo-600">Alt Text Pro</span>
-          <span className="mx-1.5 text-slate-300">•</span>
-          Alt text for every image
-        </p>
-
-        <div className="mt-8 flex justify-center">
-          <button
-            onClick={runScan}
-            disabled={!shop || scanning}
-            className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-8 py-3.5 text-base font-semibold text-white shadow-md shadow-indigo-500/20 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/40 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md"
-          >
-            {/* light sheen that sweeps across on hover */}
-            <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
-            <span className="relative flex items-center gap-2">
-              {scanning ? <Search className="h-5 w-5 animate-scan" /> : <ScanLine className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />}
-              {scanning ? 'Scanning…' : 'Scan now'}
+      {/* ===== HERO (white card) ===== */}
+      <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-9">
+        <div className="grid items-center gap-10 lg:grid-cols-[1fr_1.15fr]">
+          {/* LEFT: copy + CTA (left-aligned) */}
+          <div className="text-left">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-semibold text-indigo-600 shadow-sm ring-1 ring-indigo-100">
+              <Sparkles className="h-3.5 w-3.5" /> Accessibility &amp; image SEO
             </span>
-          </button>
-        </div>
+            <h1 className="mt-4 text-3xl font-bold leading-[1.25] tracking-[0.01em] text-slate-900 sm:text-4xl sm:leading-[1.25]">
+              Every image,<br />
+              <span className="whitespace-nowrap bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">described properly</span>
+            </h1>
+            <p className="mt-4 max-w-md text-base leading-relaxed text-slate-600">
+              <span className="font-semibold text-slate-800">Alt Text Pro</span> finds every image in your store and writes
+              clean, accessible alt text in one click.
+            </p>
 
-        {scanning ? (
-          <p className="mt-3 text-sm text-slate-600">This can take a moment on large stores.</p>
-        ) : scannedAt ? (
-          <p className="mt-3 text-sm text-slate-600">Last scanned {new Date(scannedAt).toLocaleString()}</p>
-        ) : (
-          <p className="mt-3 text-sm text-slate-600">Scans your products, files &amp; blog images in one click.</p>
-        )}
+            {/* prompt + 3D push button */}
+            <div className="mt-9 flex flex-col items-start gap-4">
+              <button
+                onClick={runScan}
+                disabled={!shop || scanning}
+                className="btn-3d group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 px-9 py-4 text-base font-bold text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-80"
+              >
+                {/* light sheen that sweeps across on hover */}
+                <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
+                <span className="relative flex items-center gap-2.5">
+                  {scanning ? <Search className="h-5 w-5 animate-scan" /> : <ScanLine className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />}
+                  {scanning ? 'Scanning your store…' : 'Scan now'}
+                </span>
+              </button>
+
+              {scanning ? (
+                <p className="text-sm text-slate-500">This can take a moment on large stores.</p>
+              ) : scannedAt ? (
+                <p className="text-sm font-semibold text-slate-700">Last scanned {new Date(scannedAt).toLocaleString()}</p>
+              ) : (
+                <p className="max-w-sm text-sm text-slate-500">
+                  Press <span className="font-semibold text-slate-700">Scan now</span> to check every image across your whole store, products, files and blog posts.
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* RIGHT: dashboard preview illustration (tilt on the wrapper, gentle
+              float on the image — kept separate so the transforms don't fight) */}
+          <div className="hidden justify-center lg:flex lg:justify-end" aria-hidden="true">
+            <div className="[transform:perspective(1300px)_rotateY(-11deg)_rotateX(4deg)]">
+              <img
+                src={`${BASE_PATH}/hero-dashboard.png`}
+                alt=""
+                className="animate-float w-full max-w-3xl rounded-2xl border border-slate-200 shadow-2xl shadow-indigo-500/25"
+              />
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* ===== Disabled-sources note (some sources turned off in Settings) ===== */}
@@ -259,21 +295,31 @@ export default function DashboardPage() {
 
       {/* ===== Live scan progress (shown only while scanning) ===== */}
       {scanning ? (
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center gap-4">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
-              <Loader2 className="h-5 w-5 animate-spin" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-slate-800">Scanning your store…</p>
-              <p className="mt-0.5 text-sm text-slate-600">
-                <span className="font-semibold text-indigo-600 tabular-nums">{scanCount.toLocaleString()}</span> images found so far
-              </p>
+        <section className="rounded-2xl border border-slate-200/80 bg-white p-8 shadow-sm sm:p-12">
+          <div className="flex flex-col items-center text-center">
+            {/* animated scan icon with pulsing rings */}
+            <div className="relative flex h-16 w-16 items-center justify-center">
+              <span className="absolute inset-0 animate-ping rounded-2xl bg-indigo-400/20" />
+              <span className="absolute -inset-2 animate-pulse rounded-3xl bg-indigo-400/10" />
+              <span className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/40 ring-1 ring-inset ring-white/25">
+                <Search className="h-8 w-8 animate-scan" />
+              </span>
             </div>
-          </div>
-          {/* indeterminate sweeping bar (total isn't known until the scan finishes) */}
-          <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full w-1/3 rounded-full bg-gradient-to-r from-indigo-400 to-violet-500 animate-scanbar" />
+
+            <h3 className="mt-6 text-lg font-semibold text-slate-900">Scanning your store…</h3>
+            <p className="mt-1 text-sm text-slate-500">Finding every image across products, collections, blogs and files.</p>
+
+            {/* big live count */}
+            <div className="mt-6 flex items-baseline gap-2">
+              <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-5xl font-bold tracking-tight text-transparent tabular-nums">{scanCount.toLocaleString()}</span>
+              <span className="text-sm font-medium text-slate-500">images found so far</span>
+            </div>
+
+            {/* indeterminate sweeping bar (total isn't known until the scan finishes) */}
+            <div className="mt-7 h-2 w-full max-w-md overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full w-1/3 rounded-full bg-gradient-to-r from-indigo-400 to-violet-500 animate-scanbar" />
+            </div>
+            <p className="mt-3 text-xs text-slate-400">This can take a moment on large stores. Please keep this tab open.</p>
           </div>
         </section>
       ) : null}
@@ -281,133 +327,141 @@ export default function DashboardPage() {
       {/* ===== Store overview (hidden while (re)scanning, reappears + re-animates when done) ===== */}
       {scanned && !scanning ? (
         <>
-          <Divider />
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-slate-700">Store overview</h2>
-              <span className="text-sm text-slate-600">across your whole store</span>
+          <section ref={overviewRef} className="scroll-mt-6 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-9">
+            {/* header */}
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-slate-900">My store overview</h2>
+              <p className="mt-1 text-sm text-slate-500">Alt text coverage across your whole store</p>
             </div>
 
-            {/* Headline tiles — entrance on the wrapper, hover lift on the inner card
-                (kept separate so the animation's transform doesn't block the hover) */}
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <div className="animate-card-in" style={{ animationDelay: '0ms' }}>
-                <div className="h-full cursor-default rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg hover:ring-slate-200">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><LayoutGrid className="h-4 w-4" /></div>
-                  <div className="mt-2 text-xl font-bold text-slate-900 tabular-nums">{animTotal.toLocaleString()}</div>
-                  <div className="text-sm text-slate-600">Total images</div>
-                </div>
-              </div>
-              <div className="animate-card-in" style={{ animationDelay: '90ms' }}>
-                <div className="h-full cursor-default rounded-2xl bg-emerald-50 p-4 ring-1 ring-emerald-100 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg hover:shadow-emerald-500/20 hover:ring-emerald-200">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600"><CheckCircle2 className="h-4 w-4" /></div>
-                  <div className="mt-2 text-xl font-bold text-slate-900 tabular-nums">{animWithAlt.toLocaleString()}</div>
-                  <div className="text-sm text-slate-600">With alt text</div>
-                </div>
-              </div>
-              <div className="animate-card-in" style={{ animationDelay: '180ms' }}>
-                <div className="h-full cursor-default rounded-2xl bg-rose-50 p-4 ring-1 ring-rose-100 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg hover:shadow-rose-500/20 hover:ring-rose-200">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-100 text-rose-600"><AlertTriangle className="h-4 w-4" /></div>
-                  <div className="mt-2 text-xl font-bold text-slate-900 tabular-nums">{animMissing.toLocaleString()}</div>
-                  <div className="text-sm text-slate-600">Missing alt</div>
-                </div>
-              </div>
-              <div className="animate-card-in" style={{ animationDelay: '270ms' }}>
-                <div className="h-full cursor-default rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-100 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg hover:shadow-amber-500/20 hover:ring-amber-200">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-600"><AlertCircle className="h-4 w-4" /></div>
-                  <div className="mt-2 text-xl font-bold text-slate-900 tabular-nums">{animNeeds.toLocaleString()}</div>
-                  <div className="text-sm text-slate-600">Needs work</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Overall coverage — donut ring (entrance on wrapper, hover lift on inner) */}
-            <div className="animate-card-in mt-6" style={{ animationDelay: '260ms' }}>
-            <div className="flex flex-col items-center gap-6 rounded-2xl bg-gradient-to-br from-indigo-50/70 via-white to-white p-6 ring-1 ring-slate-100 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg hover:shadow-indigo-500/15 hover:ring-indigo-200 sm:flex-row sm:gap-8">
-              <div className="relative h-36 w-36 shrink-0">
-                <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
-                  {/* light track behind the coloured segments */}
-                  <circle cx="60" cy="60" r="52" fill="none" stroke="#eef2f7" strokeWidth="11" />
-                  {/* optimized (green) */}
-                  <circle cx="60" cy="60" r="52" fill="none" stroke="#10b981" strokeWidth="11"
-                    strokeDasharray={`${greenLen} ${ring}`} transform="rotate(0 60 60)" />
-                  {/* needs work (amber) */}
-                  <circle cx="60" cy="60" r="52" fill="none" stroke="#f59e0b" strokeWidth="11"
-                    strokeDasharray={`${amberLen} ${ring}`} transform={`rotate(${fOpt * 360} 60 60)`} />
-                  {/* missing (rose) */}
-                  <circle cx="60" cy="60" r="52" fill="none" stroke="#fb7185" strokeWidth="11"
-                    strokeDasharray={`${roseLen} ${ring}`} transform={`rotate(${(fOpt + fNeeds) * 360} 60 60)`} />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-3xl font-bold tracking-tight text-slate-900 tabular-nums">{Math.round(animCoverage)}%</span>
-                  <span className="text-xs font-medium text-slate-500">covered</span>
-                </div>
-              </div>
-
-              <div className="flex-1 text-center sm:text-left">
-                <h3 className="text-base font-semibold text-slate-800">Alt text coverage</h3>
-                <p className="mt-1 text-sm text-slate-600">
-                  <span className="font-semibold text-slate-700 tabular-nums">{animWithAlt.toLocaleString()}</span> of {total.toLocaleString()} images already have alt text.
-                </p>
-                <div className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-2 sm:justify-start">
-                  <span className="inline-flex items-center gap-2 text-sm text-slate-600">
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                    Optimized <span className="font-semibold text-slate-800 tabular-nums">{animOptimized.toLocaleString()}</span>
+            {/* KPI row — icon chip overlaps the top border of each card */}
+            <div className="grid grid-cols-2 gap-x-4 gap-y-9 pt-3 lg:grid-cols-4">
+              {[
+                { label: 'Total store images', value: animTotal, chip: 'bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-indigo-500/30', Icon: LayoutGrid },
+                { label: 'Images with alt text', value: animWithAlt, chip: 'bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-emerald-500/30', Icon: CheckCircle2 },
+                { label: 'Missing alt text', value: animMissing, chip: 'bg-gradient-to-br from-rose-500 to-rose-600 shadow-rose-500/30', Icon: AlertTriangle },
+                { label: 'Needs improvement', value: animNeeds, chip: 'bg-gradient-to-br from-amber-500 to-amber-600 shadow-amber-500/30', Icon: AlertCircle },
+              ].map(({ label, value, chip, Icon }, i) => (
+                <div key={label} className="animate-card-in relative rounded-2xl border border-slate-200/80 bg-white px-5 pb-5 pt-12 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md" style={{ animationDelay: `${i * 70}ms` }}>
+                  {/* 3D glossy icon chip overlapping the top border */}
+                  <span className={`absolute -top-4 left-5 flex h-11 w-11 items-center justify-center rounded-xl text-white shadow-lg ring-1 ring-inset ring-white/25 ${chip}`}>
+                    <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-xl bg-white/20" />
+                    <Icon className="relative h-5 w-5" strokeWidth={1.75} />
                   </span>
-                  <span className="inline-flex items-center gap-2 text-sm text-slate-600">
-                    <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
-                    Needs work <span className="font-semibold text-slate-800 tabular-nums">{animNeeds.toLocaleString()}</span>
-                  </span>
-                  <span className="inline-flex items-center gap-2 text-sm text-slate-600">
-                    <span className="h-2.5 w-2.5 rounded-full bg-rose-400" />
-                    Missing <span className="font-semibold text-slate-800 tabular-nums">{animMissing.toLocaleString()}</span>
-                  </span>
+                  <div className="text-sm font-medium text-slate-500">{label}</div>
+                  <div className="mt-1 text-2xl font-bold tracking-tight text-slate-900 tabular-nums">{value.toLocaleString()}</div>
                 </div>
-              </div>
-            </div>
+              ))}
             </div>
 
-            {/* Coverage by source — mini radial rings */}
-            {sourceStats.length ? (
-              <div className="mt-6 border-t border-slate-100 pt-5">
-                <p className="animate-card-in text-xs font-semibold uppercase tracking-wide text-slate-500" style={{ animationDelay: '340ms' }}>Coverage by source</p>
-                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {sourceStats.map(({ id, label, icon: Icon, total: t, withAlt: w }, i) => {
-                    const pct = t > 0 ? Math.round((w / t) * 100) : 0;
-                    const ease = easeOutCubic(Math.min(1, Math.max(0, (reveal - i * 0.12) / 0.6)));
-                    const c = 2 * Math.PI * 16; // mini ring circumference (r=16)
-                    const ringColor = pct >= 80 ? '#10b981' : pct >= 40 ? '#f59e0b' : '#fb7185';
+            {/* Coverage + recent activity */}
+            <div className="mt-4 grid gap-4 lg:grid-cols-5">
+              {/* Coverage card */}
+              <div className="animate-card-in rounded-2xl bg-slate-50 p-6 ring-1 ring-slate-100 sm:p-7 lg:col-span-3" style={{ animationDelay: '120ms' }}>
+                <h3 className="text-base font-semibold text-slate-900">Alt text coverage</h3>
+                <p className="mt-0.5 text-sm text-slate-500">How much of your store is described</p>
+
+                {/* water-fill coverage circle with floating stat badges */}
+                <div className="relative mx-auto mt-8 mb-2 h-52 w-52">
+                  {/* outer progress ring */}
+                  <svg viewBox="0 0 120 120" className="absolute inset-0 h-full w-full -rotate-90">
+                    <circle cx="60" cy="60" r="56" fill="none" stroke="#e2e8f0" strokeWidth="4" />
+                    <circle cx="60" cy="60" r="56" fill="none" stroke="#10b981" strokeWidth="4" strokeLinecap="round"
+                      strokeDasharray={`${(2 * Math.PI * 56 * animCoverage) / 100} ${2 * Math.PI * 56}`} />
+                  </svg>
+                  {/* inner water circle */}
+                  <div className="absolute inset-[11px] overflow-hidden rounded-full bg-white ring-1 ring-slate-100">
+                    <div
+                      className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-emerald-400 to-emerald-200 transition-[height] duration-700 ease-out"
+                      style={{ height: `${animCoverage}%` }}
+                    >
+                      {/* floating wave surface */}
+                      <svg className="animate-wave absolute -top-[7px] left-0 h-3 w-[200%] text-emerald-300" viewBox="0 0 1200 20" preserveAspectRatio="none" fill="currentColor">
+                        <path d="M0,10 C150,0 150,0 300,10 C450,20 450,20 600,10 C750,0 750,0 900,10 C1050,20 1050,20 1200,10 L1200,20 L0,20 Z" />
+                      </svg>
+                    </div>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-4xl font-bold tracking-tight text-emerald-900 tabular-nums">{Math.round(animCoverage)}%</span>
+                      <span className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-emerald-800/60">covered</span>
+                    </div>
+                  </div>
+                  {/* floating stat badges */}
+                  <div className="absolute -right-3 top-4 flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-md ring-1 ring-slate-100">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> {animWithAlt.toLocaleString()} described
+                  </div>
+                  <div className="absolute -right-3 bottom-4 flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-md ring-1 ring-slate-100">
+                    <AlertTriangle className="h-3.5 w-3.5 text-rose-500" /> {animMissing.toLocaleString()} missing
+                  </div>
+                  <div className="absolute -left-3 bottom-10 flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-md ring-1 ring-slate-100">
+                    <ImagesIcon className="h-3.5 w-3.5 text-indigo-500" /> {total.toLocaleString()} images
+                  </div>
+                </div>
+
+                {/* breakdown rows */}
+                <div className="mt-7 border-t border-slate-100 pt-2">
+                  {[
+                    { label: 'Properly described', value: animOptimized, dot: 'bg-emerald-500' },
+                    { label: 'Needs improvement', value: animNeeds, dot: 'bg-amber-500' },
+                    { label: 'Missing alt text', value: animMissing, dot: 'bg-rose-400' },
+                  ].map(({ label, value, dot }) => {
+                    const pct = total ? Math.round((value / total) * 100) : 0;
                     return (
-                      <div
-                        key={id}
-                        className="animate-card-in flex flex-col items-center gap-2 rounded-2xl border border-slate-200 bg-white p-4 text-center transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-md"
-                        style={{ animationDelay: `${400 + i * 90}ms` }}
-                      >
-                        <div className="relative h-16 w-16">
-                          <svg viewBox="0 0 40 40" className="h-full w-full -rotate-90">
-                            <circle cx="20" cy="20" r="16" fill="none" stroke="#eef2f7" strokeWidth="4" />
-                            <circle
-                              cx="20" cy="20" r="16" fill="none" stroke={ringColor} strokeWidth="4" strokeLinecap="round"
-                              strokeDasharray={c}
-                              strokeDashoffset={c * (1 - (pct * ease) / 100)}
-                            />
-                          </svg>
-                          <div className="absolute inset-0 flex items-center justify-center text-sm font-bold text-slate-800 tabular-nums">
-                            {Math.round(pct * ease)}%
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
-                          <Icon className="h-4 w-4 text-indigo-400" />
+                      <div key={label} className="flex items-center justify-between border-b border-slate-100 py-3 last:border-0">
+                        <span className="flex items-center gap-2.5 text-sm font-medium text-slate-700">
+                          <span className={`h-2.5 w-2.5 rounded-full ${dot}`} />
                           {label}
-                        </div>
-                        <div className="text-xs text-slate-500 tabular-nums">{w}/{t} have alt</div>
+                        </span>
+                        <span className="flex items-center gap-3">
+                          <span className="text-sm text-slate-500 tabular-nums">{value.toLocaleString()} {value === 1 ? 'image' : 'images'}</span>
+                          <span className="inline-flex w-12 justify-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600 tabular-nums">{pct}%</span>
+                        </span>
                       </div>
                     );
                   })}
                 </div>
               </div>
-            ) : null}
 
+              {/* Recent activity — timeline */}
+              <div className="animate-card-in flex flex-col rounded-2xl bg-slate-50 p-6 ring-1 ring-slate-100 lg:col-span-2" style={{ animationDelay: '200ms' }}>
+                <div className="mb-1 flex items-center justify-between">
+                  <h3 className="text-base font-semibold text-slate-900">Recent activity</h3>
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-slate-400 ring-1 ring-slate-100">
+                    <Clock className="h-4 w-4" />
+                  </span>
+                </div>
+                {activity.length ? (
+                  <ul className="mt-4 space-y-2.5">
+                    {activity.slice(0, 5).map((a) => {
+                      const meta = ACTIVITY_META[a.type] || ACTIVITY_META.scan;
+                      const Icon = meta.icon;
+                      return (
+                        <li key={a.ts} className="group flex items-start gap-3 rounded-xl border border-slate-200/70 bg-gradient-to-b from-white to-slate-50/60 p-3 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_3px_10px_rgba(15,23,42,0.05)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_6px_18px_rgba(15,23,42,0.12)]">
+                          <span className={`relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br text-white shadow-lg ring-1 ring-inset ring-white/30 ${meta.grad}`}>
+                            <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-white/20" />
+                            <Icon className="relative h-5 w-5" strokeWidth={1.75} />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="text-sm font-semibold text-slate-700">{meta.tag}</p>
+                              <span className="shrink-0 whitespace-nowrap pt-0.5 text-xs font-medium text-slate-400">{relativeTime(a.ts)}</span>
+                            </div>
+                            <p className="mt-0.5 text-xs leading-snug text-slate-500">{meta.text(a)}</p>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <div className="flex flex-1 flex-col items-center justify-center py-10 text-center">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white ring-1 ring-slate-100">
+                      <Clock className="h-6 w-6 text-slate-300" />
+                    </span>
+                    <p className="mt-3 text-sm font-medium text-slate-500">No activity yet</p>
+                    <p className="mt-0.5 text-xs text-slate-400">Scan, generate or embed to see it here.</p>
+                  </div>
+                )}
+              </div>
+            </div>
           </section>
 
           {/* View all images — outside the card */}
@@ -420,7 +474,7 @@ export default function DashboardPage() {
               <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
               <span className="relative flex items-center gap-2">
                 <ImagesIcon className="h-4 w-4" />
-                See all images
+                View all images
                 <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
               </span>
             </a>
@@ -429,95 +483,40 @@ export default function DashboardPage() {
         </>
       ) : null}
 
-      {/* ===== Recent activity ===== */}
-      {activity.length ? (
-        <>
-          <Divider />
-          <section>
-            <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
-              <Clock className="h-4 w-4" /> Recent activity
-            </h2>
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-              <ol>
-                {actItems.map((a, i, arr) => {
-                  const meta = ACTIVITY_META[a.type] || ACTIVITY_META.scan;
-                  const Icon = meta.icon;
-                  const last = i === arr.length - 1;
-                  return (
-                    <li key={a.ts} className="animate-fade-in relative flex gap-4 pb-5 last:pb-0" style={{ animationDelay: `${i * 60}ms` }}>
-                      {!last ? <span className="absolute left-5 top-11 bottom-0 w-px bg-slate-200" /> : null}
-                      <span className={`relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${meta.chip}`}>
-                        <Icon className="h-4 w-4" />
-                      </span>
-                      <div className="min-w-0 flex-1 pt-1.5">
-                        <p className="text-sm font-medium text-slate-800">{meta.text(a)}</p>
-                        <p className="mt-0.5 text-xs text-slate-500">
-                          {relativeTime(a.ts)} <span className="text-slate-300">·</span> {new Date(a.ts).toLocaleString()}
-                        </p>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ol>
-
-              {actTotalPages > 1 ? (
-                <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-4">
-                  <span className="text-xs text-slate-500">
-                    {activity.length} total <span className="text-slate-300">·</span> page {actSafe + 1} of {actTotalPages}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setActPage((p) => Math.max(0, p - 1))}
-                      disabled={actSafe === 0}
-                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-40"
-                    >
-                      <ChevronLeft className="h-3.5 w-3.5" /> Newer
-                    </button>
-                    <button
-                      onClick={() => setActPage((p) => Math.min(actTotalPages - 1, p + 1))}
-                      disabled={actSafe >= actTotalPages - 1}
-                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-40"
-                    >
-                      Older <ChevronRight className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          </section>
-        </>
-      ) : null}
-
-      <Divider />
-
-      {/* ===== How it works ===== */}
-      <section>
-        <h2 className="mb-5 text-center text-sm font-semibold uppercase tracking-wide text-slate-500">How it works</h2>
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {STEPS.map(({ title, text, icon: Icon, ring }, i) => (
-            <div key={title} className="group text-center">
-              <div
-                className={`animate-float mx-auto flex h-11 w-11 items-center justify-center rounded-full shadow-sm transition-shadow duration-300 group-hover:shadow-md ${ring}`}
-                style={{ animationDelay: `${i * 0.4}s` }}
-              >
-                <Icon className="h-5 w-5" />
-              </div>
-              <h3 className="mt-3 text-base font-semibold text-slate-800">{i + 1}. {title}</h3>
-              <p className="mx-auto mt-1 max-w-[15rem] text-sm text-slate-600">{text}</p>
+      {/* ===== How it works (white card) ===== */}
+      <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-9">
+        <div className="mb-7">
+          <h2 className="text-lg font-semibold text-slate-900">How it works</h2>
+          <p className="mt-1 text-sm text-slate-500">From scan to embed in four simple steps</p>
+        </div>
+        <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
+          {STEPS.map(({ title, text, icon: Icon, grad }, i) => (
+            <div key={title} className="group">
+              {/* 3D gradient icon chip */}
+              <span className={`relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br text-white shadow-lg ring-1 ring-inset ring-white/25 transition-transform duration-300 group-hover:-translate-y-1 ${grad}`}>
+                <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-white/20" />
+                <Icon className="relative h-6 w-6" strokeWidth={1.75} />
+              </span>
+              <h3 className="mt-4 text-base font-semibold text-slate-900">{title}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-slate-500">{text}</p>
             </div>
           ))}
         </div>
       </section>
 
-      <Divider />
-
-      {/* ===== WCAG tip (slim soft callout) ===== */}
-      <div className="flex items-start gap-3 rounded-2xl bg-sky-50 px-4 py-3 text-sm text-slate-600">
-        <Info className="mt-0.5 h-4 w-4 shrink-0 text-sky-500" />
-        <p>
-          Alt text lets screen readers describe images and boosts image SEO. WCAG recommends concise,
-          meaningful text, so Alt Text Pro keeps every alt under 120 characters.
-        </p>
+      {/* ===== WCAG tip ===== */}
+      <div className="flex items-start gap-4 rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 to-white p-5 shadow-sm sm:p-6">
+        <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-sky-500 to-sky-600 text-white shadow-lg shadow-sky-500/30 ring-1 ring-inset ring-white/25">
+          <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-white/20" />
+          <Info className="relative h-5 w-5" strokeWidth={1.75} />
+        </span>
+        <div>
+          <h3 className="text-sm font-semibold text-slate-900">Why alt text matters</h3>
+          <p className="mt-1 text-sm leading-relaxed text-slate-600">
+            Alt text lets screen readers describe images and boosts image SEO. WCAG recommends concise,
+            meaningful text, so Alt Text Pro keeps every alt under 120 characters.
+          </p>
+        </div>
       </div>
 
     </div>

@@ -4,11 +4,18 @@
 
 body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
-        "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
-        "Helvetica Neue", sans-serif;
+    /* Body / paragraph type = Inter (loaded via next/font in app/layout.js). */
+    font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
+        "Roboto", "Helvetica Neue", sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+}
+
+/* All headings use the display font (Sora) for a consistent, distinct look
+   that's clearly separate from the Inter body text. */
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-sora), var(--font-inter), sans-serif;
+    letter-spacing: normal;
 }
 
 code {
@@ -177,6 +184,38 @@ code {
 }
 .animate-fade-in {
   animation: fade-in 0.4s ease-out both;
+}
+/* 3D "pushable" button: a solid violet lip sits under the gradient face via the
+   first box-shadow, with a soft glow as the second. The face lifts on hover and
+   presses all the way down on click, so it feels like a real key. Pair with a
+   gradient background face; do NOT add Tailwind translate-y utilities (they fight
+   this transform). */
+.btn-3d {
+  box-shadow: 0 6px 0 0 #4c1d95, 0 12px 18px -6px rgba(79, 70, 229, 0.45);
+  transition: transform 130ms cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 130ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.btn-3d:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 0 0 #4c1d95, 0 18px 24px -8px rgba(79, 70, 229, 0.5);
+}
+.btn-3d:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 0 #4c1d95, 0 5px 9px -3px rgba(79, 70, 229, 0.4);
+}
+.btn-3d:disabled {
+  transform: none;
+  box-shadow: 0 6px 0 0 #c7d2fe, 0 10px 14px -6px rgba(79, 70, 229, 0.18);
+}
+/* Moving water surface — a wide wave SVG slides left so the coverage circle's
+   fill looks like gently floating water. Pairs with .animate-wave on a 200%-wide
+   wave that loops seamlessly at -50%. */
+@keyframes wave {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-wave {
+  animation: wave 3.5s linear infinite;
 }
 /* Gentle continuous bob — used on the "How it works" step icons so they feel
    alive without being distracting. */
