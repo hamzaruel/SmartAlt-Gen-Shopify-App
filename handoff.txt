@@ -1,10 +1,67 @@
 ================================================================================
 ALT TEXT PRO (code/repo name: SmartAltGen) — SESSION HANDOFF
-Last updated: 2026-06-13
+Last updated: 2026-06-19
 Repo: github.com/SyedAoun95/smart-alt-gen  (branch: main)
-Latest commit at handoff: b62c5b7 (background AI generation)
-   + uncommitted: app/(app)/help/page.jsx (mailto target=_blank fix)
+Latest commit at handoff: 3a83644 (error/image recovery — phase 1)
+   + uncommitted: PHASE 2 (bulk on the shared retry queue) — lib/generationJob.js,
+     lib/bulkRun.js, lib/altText.js, app/(app)/generate/page.jsx,
+     app/api/webhooks/* (GDPR), app/api/verify-queue/ (staging-only test harness)
 ================================================================================
+
+================================================================================
+LARGE-STORE RELIABILITY — PER-IMAGE RETRY QUEUE  (Phase 1 ✅  Phase 2 ✅ verified)
+================================================================================
+WHY: the old generation flow held the whole image list in memory / one JSON blob
+and SILENTLY DROPPED images that failed AI generation (job still reported "done").
+Fatal at 100k–200k+ stores and dishonest for an accessibility product. Rebuilt as
+a per-image retry queue so NO image is ever skipped without being accounted for.
+
+CORE MODEL (lib/generationJob.js)
+  - ONE ROW PER IMAGE in `generation_queue`, keyed (shop, kind, image_key);
+    status: pending -> processing -> done | failed; tracks attempts, next_attempt_at,
+    alt, last_error. Control row per (shop, kind) in `generation_jobs`.
+  - kind = 'manual' (Generate page) | 'bulk' (Bulk edit + scheduler). One shared
+    engine; the two kinds run on independent queues and never collide.
+  - Invariant: a job is "complete" only when EVERY image is terminal (done or
+    permanently failed). Replaces the old generation_results table + queue blob.
+
+FAILURE / RETRY (the four review-hardened fixes — all verified)
+  1. Image faults (dead URL, decode, content block): consume an attempt, retry
+     with backoff (5s, 30s), permanently `failed` after MAX_ATTEMPTS=3. Surfaced
+     to the merchant with a "Retry failed" button (/api/generate/retry).
+  2. Service faults (Gemini 429/503/overloaded): do NOT burn an attempt — pause
+     the job (paused_service, escalating 5/15/30 min) and auto-resume.
+  3. Plan-quota exhaustion (our meter): surfaced pause (paused_quota), auto-resumes
+     at the next billing cycle (resume_at = currentPeriodEnd; Free/none = upgrade).
+     NB: plan-quota (next cycle) is split from Gemini-quota (short retry).
+  4. Crash safety: the CLAIM (pending->processing, guarded by rowsAffected===1) is
+     the concurrency gate; done + usage increment commit in ONE db.batch (no double
+     bill); stranded `processing` rows reclaimed only when older than 4 min.
+
+AUTO-RESUME: scheduler tick (lib/scheduler.js) runs sweepResumableJobs() every 60s
+  — resumes any paused job (manual via runJob, bulk re-enters its orchestrator),
+  refreshing entitlement on quota resume. Tab-independent. + hourly TTL cleanup.
+
+BULK (Phase 2 — lib/bulkRun.js, now fully streaming; no getAllImages/toApply walls)
+  - Phase machine, re-entrant by `phase`: scanning (packet-by-packet seed) ->
+    generating (AI via shared engine; title/template/remove computed in DB pages)
+    -> applying (write-back in pages of 25, drop applied rows) -> finished.
+  - getBulkRun() reads the unified generation_jobs(kind='bulk') row; bulk/status +
+    client poller handle paused/failed states. bulk_runs table is retired.
+
+GDPR: deleteGenerationData(shop) wired into app/uninstalled + shop/redact.
+
+VERIFICATION: app/api/verify-queue (HARD-GATED: 404 unless ALTGEN_TEST_HOOK=1;
+  also makes generateWithGemini deterministic + shrinks timers). 9/9 pass against
+  the live Turso DB — covers happy path, permanent-fail, flaky retry, service
+  pause, crash recovery, retry-failed, quota cap, auto-resume sweep, and manual+
+  bulk coexistence. STAGING-PENDING: bulk's scan (scanPacket) + write-back
+  (embedAlts) need a real shop token — run one small bulk edit on staging to
+  confirm scan->generate->apply end-to-end.
+
+NEXT (Phase 3, not started): Gemini Batch Mode for the 200k INITIAL backfill (the
+  cost/throughput win; this queue is the real-time/correctness layer). `batch_id`
+  column already reserved on generation_queue so no further migration is needed.
 
 WHAT THIS APP IS
 ----------------
@@ -116,9 +173,11 @@ WHAT WE DID (chronological + by area)
 
 10. BACKGROUND AI GENERATION (Tier 2) — survives tab close/refresh/restart
    - Server-side job runs in the PM2 process, decoupled from the tab.
-   - Turso: generation_jobs (queue + budget) + generation_results (per-image).
-   - lib/generationJob.js (runJob worker, resumable + self-healing on stale
-     heartbeat). app/api/generate/{start,status,cancel}/route.js.
+   - Turso: now the PER-IMAGE RETRY QUEUE (generation_jobs + generation_queue,
+     keyed by shop+kind) — see the "LARGE-STORE RELIABILITY" section above.
+     (Superseded the original generation_jobs-queue-blob + generation_results.)
+   - lib/generationJob.js (runGenerationLoop engine + runJob manual wrapper,
+     resumable + self-healing). app/api/generate/{start,status,cancel,retry}/route.js.
    - Client (generate page): AI -> /start, poll /status every 3s, reconnect to a
      running job on page load. Quota/overflow enforced in the worker.
    - meter.js refactored: settleOverflow() reusable by the worker.
