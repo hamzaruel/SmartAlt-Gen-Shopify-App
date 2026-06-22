@@ -1,0 +1,392 @@
+================================================================================
+ALT TEXT PRO (code/repo name: SmartAltGen) — SESSION HANDOFF
+Last updated: 2026-06-22
+Repo: github.com/SyedAoun95/smart-alt-gen  (branch: main)
+Latest commit: 6795b9d (disable Gemini thinking budget) — deployed & verified live.
+   + uncommitted at this handoff: lib/altText.js thinking-regression guard (extra
+     log field + warn), this handoff.txt.
+================================================================================
+
+================================================================================
+SESSION 2026-06-22 — THREE CHANGES (all deployed unless noted)
+================================================================================
+1. GEMINI COST FIX — DISABLE THINKING BUDGET  ★ highest-leverage change in project
+   FINDING (from live usageMetadata logs, NOT estimates): gemini-2.5-flash is a
+   REASONING model; by default it spent ~500–2,800 hidden "thinking" tokens per
+   image, BILLED AT THE OUTPUT RATE. total = prompt+output+thinking, so ~70–90%
+   of spend was reasoning we never use (one-line product alt text has nothing to
+   reason about). Real cost was ~$0.0022/image, ~8–14x higher than first guessed.
+   FIX (lib/altText.js): generationConfig.thinkingConfig.thinkingBudget = 0 on every
+   non-pro model in the chain (2.5-pro can't take 0 — has a minimum — and is the
+   ~never-hit last resort, so it keeps default thinking). + maxOutputTokens:100 cap.
+   VERIFIED LIVE: after deploy + `pm2 flush` + fresh generations, every log line
+   reads total = prompt+output EXACTLY (thinking = 0). The legacy SDK
+   (@google/generative-ai@0.24.1) DOES forward thinkingConfig (proven by
+   intercepting the request body) — no SDK migration needed.
+   MEASURED COST NOW: ~$0.000155/image (input ~332 @ $0.30/1M + output ~22 @
+   $2.50/1M). ~14x cheaper. Per-volume: 500≈$0.08, 1k≈$0.15, 10k≈$1.55, 50k≈$7.70.
+   MARGINS (verified): Starter $4.99/1k ~97%, Growth $9.99/10k ~84%,
+   Compliance $19.99/50k ~61% WORST-CASE (one-time backfill; steady-state pennies).
+   Before the fix Growth & Compliance were UNDERWATER at max usage.
+   REGRESSION GUARD (lib/altText.js): the per-call log now prints `thinking:N` and
+   warns loudly if a non-pro model bills >50 thinking tokens — thinking-on is the
+   DEFAULT, so any SDK/model/config change could silently bring it back and ~14x
+   costs. KEEP the usageMetadata logging permanently — it's the early-warning system.
+   STILL OPEN (owner): A/B ~30 generated alt texts (across product types, esp.
+   multi-object scenes) to confirm quality held with thinking off. If one type
+   degrades, set thinkingBudget to a small value (e.g. 128), do NOT revert to default.
+   NOTE: dedupe (~25%) + Gemini Batch Mode (~50%) are now OPTIMIZATIONS for extra
+   Compliance-backfill margin, NOT survival fixes.
+
+2. CONCURRENCY — CHUNK 3 → 10 (lib/generationJob.js). Shared engine, so manual +
+   bulk both run 10 concurrent Gemini calls/worker. Step to 15/20 only after
+   watching VPS RAM/CPU + 429 pauses; cap ~15 to protect the rare 2.5-pro fallback.
+
+3. EXPIRING OFFLINE TOKENS (Shopify deprecation — see its own section below).
+   Replaced permanent offline tokens with expiring (1h access + 90d refresh) via
+   token exchange. Supersedes the permanent-offline model described in §12 +
+   "TURSO DATA MODEL" below (those sections are now historical for the offline token).
+================================================================================
+
+================================================================================
+EXPIRING OFFLINE ACCESS TOKENS  (2026-06-22 — deployed & verified live)
+================================================================================
+WHY: Shopify retires non-expiring (permanent) offline tokens; all public apps must
+use EXPIRING offline tokens by 2027-01-01. The old code (callback + bulk/scheduler)
+minted & used a permanent offline token → "Deprecated offline token use" dashboard
+banner (rolling 30-day window; clears ~30 days after the LAST permanent-token call).
+MODEL: expiring offline token = 1h access token + 90d refresh token (rotates with
+no merchant present — what autonomous bulk/scheduler jobs need).
+FILES:
+  - lib/offlineToken.js (NEW): getValidOfflineToken() resolves a usable token for
+    background jobs — migrates a legacy permanent token, or refreshes an expired
+    one, lazily. installOfflineToken() mints the pair at install. HARD INVARIANT:
+    never drop the only working token before its replacement is durably stored
+    (exchange → PERSIST(retried) → use); failed exchange degrades to the prior
+    token (no lockout); failed persist caches the pair in-process and self-heals
+    on the next tick (no foreground needed). Single-flight migration claim.
+  - lib/db.js: +columns offline_token_expires_at, refresh_token,
+    refresh_token_expires_at, offline_migrating_at; +getOfflineRecord,
+    storeOfflinePair (durable/retried), claim/releaseOfflineMigration.
+  - app/api/auth/callback: storeOfflineToken → installOfflineToken (migrate code-
+    grant token to expiring pair; legacy fallback if exchange fails → never breaks
+    install). bulkRun.js + generationJob.js: getOfflineToken → getValidOfflineToken.
+VERIFIED: 24/24 logic checks (incl. broken-migration degradation). LIVE: fresh
+  install logs "Offline token install … migrated" + DB shows expiring pair; forced-
+  expiry refresh rotated the token live (refresh grant works). Legacy-token classify
+  via offline_token_expires_at IS NULL. NB the 3 old test shops had DEAD tokens
+  (invalid_subject_token) → can't migrate, but a dead token can't trip the banner.
+================================================================================
+
+================================================================================
+LARGE-STORE RELIABILITY — PER-IMAGE RETRY QUEUE  (Phase 1 ✅  Phase 2 ✅ verified)
+================================================================================
+WHY: the old generation flow held the whole image list in memory / one JSON blob
+and SILENTLY DROPPED images that failed AI generation (job still reported "done").
+Fatal at 100k–200k+ stores and dishonest for an accessibility product. Rebuilt as
+a per-image retry queue so NO image is ever skipped without being accounted for.
+
+CORE MODEL (lib/generationJob.js)
+  - ONE ROW PER IMAGE in `generation_queue`, keyed (shop, kind, image_key);
+    status: pending -> processing -> done | failed; tracks attempts, next_attempt_at,
+    alt, last_error. Control row per (shop, kind) in `generation_jobs`.
+  - kind = 'manual' (Generate page) | 'bulk' (Bulk edit + scheduler). One shared
+    engine; the two kinds run on independent queues and never collide.
+  - Invariant: a job is "complete" only when EVERY image is terminal (done or
+    permanently failed). Replaces the old generation_results table + queue blob.
+
+FAILURE / RETRY (the four review-hardened fixes — all verified)
+  1. Image faults (dead URL, decode, content block): consume an attempt, retry
+     with backoff (5s, 30s), permanently `failed` after MAX_ATTEMPTS=3. Surfaced
+     to the merchant with a "Retry failed" button (/api/generate/retry).
+  2. Service faults (Gemini 429/503/overloaded): do NOT burn an attempt — pause
+     the job (paused_service, escalating 5/15/30 min) and auto-resume.
+  3. Plan-quota exhaustion (our meter): surfaced pause (paused_quota), auto-resumes
+     at the next billing cycle (resume_at = currentPeriodEnd; Free/none = upgrade).
+     NB: plan-quota (next cycle) is split from Gemini-quota (short retry).
+  4. Crash safety: the CLAIM (pending->processing, guarded by rowsAffected===1) is
+     the concurrency gate; done + usage increment commit in ONE db.batch (no double
+     bill); stranded `processing` rows reclaimed only when older than 4 min.
+
+AUTO-RESUME: scheduler tick (lib/scheduler.js) runs sweepResumableJobs() every 60s
+  — resumes any paused job (manual via runJob, bulk re-enters its orchestrator),
+  refreshing entitlement on quota resume. Tab-independent. + hourly TTL cleanup.
+
+BULK (Phase 2 — lib/bulkRun.js, now fully streaming; no getAllImages/toApply walls)
+  - Phase machine, re-entrant by `phase`: scanning (packet-by-packet seed) ->
+    generating (AI via shared engine; title/template/remove computed in DB pages)
+    -> applying (write-back in pages of 25, drop applied rows) -> finished.
+  - getBulkRun() reads the unified generation_jobs(kind='bulk') row; bulk/status +
+    client poller handle paused/failed states. bulk_runs table is retired.
+
+GDPR: deleteGenerationData(shop) wired into app/uninstalled + shop/redact.
+
+VERIFICATION: app/api/verify-queue (HARD-GATED: 404 unless ALTGEN_TEST_HOOK=1;
+  also makes generateWithGemini deterministic + shrinks timers). 9/9 pass against
+  the live Turso DB — covers happy path, permanent-fail, flaky retry, service
+  pause, crash recovery, retry-failed, quota cap, auto-resume sweep, and manual+
+  bulk coexistence. STAGING-PENDING: bulk's scan (scanPacket) + write-back
+  (embedAlts) need a real shop token — run one small bulk edit on staging to
+  confirm scan->generate->apply end-to-end.
+
+NEXT (Phase 3, not started): Gemini Batch Mode for the 200k INITIAL backfill (the
+  cost/throughput win; this queue is the real-time/correctness layer). `batch_id`
+  column already reserved on generation_queue so no further migration is needed.
+
+WHAT THIS APP IS
+----------------
+Embedded Shopify app (Next.js 14, App Router + Pages Router). Scans a store's
+images (products, files, articles, collections), classifies alt-text quality,
+generates WCAG-compliant alt text (Gemini AI or rule-based title templates), and
+writes it back to Shopify. Identity = the shop domain. DB = Turso (libsql).
+Auth = OAuth + App Bridge session-token exchange. Display name "Alt Text Pro";
+toml/registered name + handle are still "SmartAltGen"/"smartaltgen-2".
+
+================================================================================
+DEPLOYMENT TOPOLOGY
+================================================================================
+- VPS: root@195.250.25.180 (accessibilitygenerator.com), multi-app box.
+- This app: served at  https://www.accessibilitygenerator.com/smart-alt-gen
+- Code on VPS: /var/www/smart-alt-gen  (cloned from GitHub via a read-only
+  deploy key; SSH alias github-smartaltgen -> ~/.ssh/smartaltgen_deploy)
+- Process: PM2 "smart-alt-gen", Next standalone server, 127.0.0.1:3004
+- nginx: 3 location blocks under the accessibilitygenerator.com 443 server:
+    /smart-alt-gen               -> proxy 127.0.0.1:3004 (+ Shopify CSP)
+    /smart-alt-gen/_next/static/ -> alias /var/www/smart-alt-gen/.next/static/
+    /smart-alt-gen/_next/        -> proxy 127.0.0.1:3004/smart-alt-gen/_next/
+- Coexists with: 3000 a11y-app, 3001 sitemap-explorer, 3003 a11y-gen.
+- Subpath is env-driven (NEXT_PUBLIC_BASE_PATH=/smart-alt-gen) so local
+  `shopify app dev` still serves at root.
+- Shopify app handle: smartaltgen-2 (Shopify-assigned, immutable, in deep links).
+
+================================================================================
+WHAT WE DID (chronological + by area)
+================================================================================
+
+1. CONFIG / TOML
+   - Fixed invalid TOML (quoted scope arrays, redirect_urls as array).
+   - Required scopes: read/write products, files, content.
+   - Registered mandatory compliance webhooks + app/uninstalled in shopify.app.toml
+     (api_version 2025-01). compliance_topics -> /api/webhooks (returns 401 on
+     bad HMAC). app/uninstalled -> /api/webhooks/app-uninstalled.
+
+2. GEMINI IMAGE PIPELINE (lib/altText.js)
+   - 512px width + format=jpg via Shopify CDN; sharp local resize for non-Shopify.
+   - usageMetadata token logging per call. TARGET_WIDTH=512 (measure before 768).
+   - Added "Gemini rate/quota error" logging in /api/generate.
+
+3. SHOPIFY COMPLIANCE / AUTH HARDENING
+   - app/uninstalled + compliance endpoints return 401 on invalid HMAC.
+   - OAuth callback HMAC uses crypto.timingSafeEqual.
+   - OAuth callback no longer leaks stack traces (redirects cleanly on error).
+   - Removed the OAuth-callback REST webhook registration (it used the DEPRECATED
+     non-expiring offline token and failed). Webhooks now come ONLY from the toml
+     via `shopify app deploy`. This clears the "deprecated offline token use"
+     dashboard banner (rolling 30-day window).
+   - Token model: getShopToken() exchanges the App Bridge session token for an
+     expiring online token (lib/tokenExchange.js) — this is the clean path.
+
+4. SUBPATH HOSTING (env-driven basePath)
+   - lib/basePath.js (BASE_PATH). next.config.js applies basePath/assetPrefix
+     only when NEXT_PUBLIC_BASE_PATH is set.
+   - Prefixed ALL client fetches, OAuth window.open, in-app <a> links, s-app-nav
+     s-links, server redirect_uri + webhook URL with BASE_PATH.
+
+5. VPS DEPLOY
+   - ecosystem.config.js (PM2, port 3004, env passthrough).
+   - Deploy key setup; nginx blocks; production URLs.
+
+6. POST-INSTALL 404 FIX
+   - Real app handle is "smartaltgen-2" (Shopify appended -2). SHOPIFY_APP_HANDLE
+     must = smartaltgen-2. pages/index.js redirects app root "/" -> /dashboard.
+
+7. SEAMLESS NAV
+   - (app)/layout.jsx auth check is non-blocking + sessionStorage-cached (no
+     "Authorizing app..." flash on every navigation).
+
+8. BILLING — MANAGED PRICING (the app is a Managed-Pricing app; Billing API is
+   BLOCKED for it, so we use the hosted pricing page + App Events).
+   Plans (defined in Partner Dashboard, internal handles must match lib/billing/plans.js):
+     free        $0      5 AI-image trial then upgrade (title/template always free)
+     starter     $4.99   1,000 AI images/mo
+     growth      $9.99   10,000 AI images/mo
+     compliance  $19.99  50,000 AI images/mo, then $4 per extra 10,000 (cap $100)
+   Mechanism:
+     - "Choose plan" -> /api/billing/subscribe -> redirects to Shopify's HOSTED
+       pricing page (/store/{store}/charges/{handle}/pricing_plans). We do NOT
+       call appSubscriptionCreate (blocked).
+     - Entitlement read LIVE from Shopify (currentAppInstallation.activeSubscriptions),
+       mapped by plan name -> handle. (Auto-fixes cycle reset + cancel sync.)
+     - Quota metered in OUR Turso DB. Cap enforced by US (Shopify doesn't enforce
+       managed-pricing usage caps).
+     - Overflow billed via the App Events API (POST https://api.shopify.com/app/
+       unstable/events, event_handle=ai_overflow_block) — 1 event per 10k block,
+       $4 each, max 25 blocks ($100). Needs a usage METER named "ai_overflow_block"
+       defined in the Dashboard ($4/unit flat) attached to the Compliance plan.
+     - /api/generate gate: title/template free; AI requires paid plan + quota;
+       Free gets 5; client shows "Upgrade your plan" banner -> /billing.
+   Files: lib/billing/{plans,usage,shopifyBilling,meter}.js,
+          app/api/billing/{status,subscribe,callback}/route.js,
+          app/(app)/billing/page.jsx, nav link "Pricing plans".
+   TEST ALLOWLIST: BILLING_BYPASS_SHOPS (comma-separated) -> those shops get a
+     synthetic "Internal (test)" plan: unlimited AI, no charges. Currently
+     contains site-map-test-2.myshopify.com. USE FOR YOUR TEST STORES + THE
+     SHOPIFY REVIEWER ONLY (dev stores can't approve paid managed pricing, so the
+     reviewer needs this to test AI).
+
+9. SCAN PERSISTENCE (Tier 1) — survives tab close, cross-device
+   - Turso table `scans` (shop PK, data JSON, scanned_at, expires_at; 7-day TTL).
+   - lib/scanDb.js + /api/scan/state (GET load, POST save).
+   - lib/scanStore.js: saveScan() mirrors to server (debounced 1.5s); hydrateScan()
+     restores from server when the local sessionStorage cache is empty.
+   - GDPR cleanup: app/uninstalled + shop/redact delete the scan row.
+
+10. BACKGROUND AI GENERATION (Tier 2) — survives tab close/refresh/restart
+   - Server-side job runs in the PM2 process, decoupled from the tab.
+   - Turso: now the PER-IMAGE RETRY QUEUE (generation_jobs + generation_queue,
+     keyed by shop+kind) — see the "LARGE-STORE RELIABILITY" section above.
+     (Superseded the original generation_jobs-queue-blob + generation_results.)
+   - lib/generationJob.js (runGenerationLoop engine + runJob manual wrapper,
+     resumable + self-healing). app/api/generate/{start,status,cancel,retry}/route.js.
+   - Client (generate page): AI -> /start, poll /status every 3s, reconnect to a
+     running job on page load. Quota/overflow enforced in the worker.
+   - meter.js refactored: settleOverflow() reusable by the worker.
+
+11. MISC
+   - Help page: support email link now target="_blank" (mailto was blocked inside
+     the embedded iframe). [uncommitted]
+   - Rename to "Alt Text Pro" was attempted then REVERTED (user reset). toml name
+     is still "SmartAltGen". Merchant-facing UI already says "Alt Text Pro"
+     (dashboard, footer, help, metadata title) from earlier edits.
+
+12. BULK EDIT + SCHEDULING (Hextom-style "Start now / Schedule later", auto-apply)
+   - Auto-write-back: a bulk run GENERATES alt text AND writes it to Shopify in one
+     pass (no separate Embed step). Runs server-side in the PM2 process.
+   - lib/bulkRun.js: runBulkEdit(shop, config) → offline token → getAllImages →
+     filter (sources / scope missing|all / skipExisting) → generate (AI via Gemini,
+     or template/title server-side) → embedAlts → meter usage + settle overflow.
+     Progress in its own Turso table `bulk_runs` (one row/shop), polled by the tab.
+   - Immediate: POST /api/bulk/start (fire-and-forget) → poll /api/bulk/status.
+   - Scheduling: lib/scheduledTasks.js + Turso `scheduled_tasks`. Recurrence
+     once|daily|weekly. The FIRST next_run_at is computed CLIENT-side (knows the
+     merchant tz) and stored as an absolute epoch; the server only ADDS 1d/1w for
+     recurring runs (no server tz math). API: /api/schedule (GET list, POST create,
+     DELETE remove). "Run now" just calls /api/bulk/start with the task's config.
+   - Scheduler: instrumentation.js register() → lib/scheduler.js startScheduler().
+     60s tick: getDueTasks (next_run_at<=now) → markRunning (atomic claim) →
+     runBulkEdit → finishRun (re-arm daily/weekly, or finish 'once'). Self-heals on
+     restart (state in Turso). Requires experimental.instrumentationHook=true in
+     next.config.js (added).
+   - UI: Alt-text-studio page gained a "Bulk edit & schedule" block (scope radios,
+     Start Bulk Editing, Schedule Bulk Editing with Once/Daily/Weekly + time) reusing
+     the existing type/mode/skip/AI-info/instructions controls, plus a "Scheduled
+     bulk edits" manager (list, run-now, delete). Bulk operates on the SELECTED type.
+   - TOKEN FIX (required for autonomous runs): shops table now has an `offline_token`
+     column (long-lived, captured at OAuth install, NEVER overwritten by the online-
+     token refresh in serverAuth). bulkRun/scheduler use getOfflineToken(shop).
+     ⚠️ Shops that installed BEFORE this change have no offline_token → getOfflineToken
+     falls back to the (short-lived) access_token, which works for immediate runs but
+     a scheduled run days later may hit an expired token. Fix: reinstall, or backfill.
+   - GDPR: app/uninstalled + shop/redact now also deleteTasksForShop(shop).
+
+================================================================================
+DEPLOY A CODE CHANGE (standard sequence)
+================================================================================
+  # local (Mac): verify build -> commit -> push
+  NEXT_PUBLIC_BASE_PATH=/smart-alt-gen npm run build
+  git add -A && git commit -m "..." && git push origin HEAD
+  # VPS
+  cd /var/www/smart-alt-gen && git pull && rm -rf .next \
+    && NEXT_PUBLIC_BASE_PATH=/smart-alt-gen npm run build && pm2 restart smart-alt-gen
+  # if shopify.app.toml URLs/webhooks changed: `shopify app deploy` from the Mac
+  # if a NEW runtime env var: add it to ecosystem.config.js, then `pm2 restart ecosystem.config.js`
+
+================================================================================
+ENV VARS (server .env at /var/www/smart-alt-gen/.env)
+================================================================================
+  SHOPIFY_API_KEY=a7267757e6ee2a05c2f043406a348e11
+  SHOPIFY_API_SECRET=<this app's secret>
+  SHOPIFY_APP_HANDLE=smartaltgen-2
+  SHOPIFY_HOST=https://www.accessibilitygenerator.com   (NO /smart-alt-gen; code appends it)
+  SHOPIFY_SCOPES=read_products,write_products,read_files,write_files,read_content,write_content
+  NEXT_PUBLIC_SHOPIFY_API_KEY=a7267757e6ee2a05c2f043406a348e11
+  NEXT_PUBLIC_BASE_PATH=/smart-alt-gen   (REQUIRED at BUILD time)
+  TURSO_DATABASE_URL=<...>
+  TURSO_AUTH_TOKEN=<...>
+  GEMINI_API_KEY=<PAID key — earlier ran out of prepaid credits; keep it funded
+                  + set a billing alert/auto-recharge in Google AI Studio>
+  SHOPIFY_BILLING_TEST=true   (test charges while QA-ing; remove at launch)
+  BILLING_BYPASS_SHOPS=site-map-test-2.myshopify.com   (test/reviewer allowlist)
+  NOTE: new runtime vars must ALSO be added to ecosystem.config.js env block
+  (the PM2 standalone server doesn't auto-read .env).
+
+================================================================================
+TURSO DATA MODEL (tables this app creates)
+================================================================================
+  shops(shop PK, access_token, offline_token, offline_token_expires_at, refresh_token,
+        refresh_token_expires_at, offline_migrating_at, created_at)
+        -- offline_token is now an EXPIRING access token (1h); refresh_token (90d)
+        -- rotates it. offline_token_expires_at NULL = legacy permanent (pre-migration).
+        -- See "EXPIRING OFFLINE ACCESS TOKENS" section. getValidOfflineToken() resolves it.
+  scheduled_tasks(id PK, shop, sources, mode, template, scope, skip_existing,
+                  info_fields, instructions, recurrence, time_label, next_run_at,
+                  status, last_run_at, last_summary, created_at)  -- bulk-edit schedules
+  bulk_runs(shop PK, status, phase, total, done, applied, errors, note, source, updated_at)
+  subscriptions(...)            -- (legacy/light; entitlement now read live)
+  usage(shop, cycle_start, ai_count, overflow_blocks_charged)   -- quota meter
+  scans(shop PK, data, scanned_at, expires_at)                  -- Tier 1 persistence
+  generation_jobs(shop PK, status, total, done, plan_id, ai_budget, cycle_key,
+                  mode, instructions, info_fields, queue, error, updated_at)
+  generation_results(shop, image_key, alt, seq, PK(shop,image_key))
+  GDPR: app/uninstalled + shop/redact delete shops + usage + scans + scheduled_tasks.
+
+================================================================================
+REMAINING TODO
+================================================================================
+  CODE / OPS:
+   - Privacy Policy + Terms links in (app)/layout.jsx have empty href="" -> set
+     real URLs (design audit flagged this as the one Critical).
+   - Validate the App-Events overflow on a REAL store (dev stores can't approve
+     paid managed pricing). Watch logs the first time a Compliance shop crosses 50k.
+   - Commit the help mailto fix; decide whether to redo the "Alt Text Pro" rename.
+   - Optional design-audit quick wins (score ~64 -> ~84): prefers-reduced-motion,
+     44px touch targets on pager/dismiss, focus-visible on CTAs, slate-400 contrast.
+   - Optional product gating discussed (product-images-only Free, etc.) — not built.
+
+  NON-CODE (owner):
+   - Finish App Store LISTING content + a real privacy policy URL.
+   - Run `shopify app deploy` to sync URLs + register webhooks. After ANY
+     `shopify app dev` session it overwrites the Dashboard URLs with an ngrok
+     tunnel (automatically_update_urls_on_dev = true) -> re-deploy to restore,
+     or set that flag to false.
+   - Keep the Gemini account funded.
+
+================================================================================
+GOTCHAS
+================================================================================
+  - NEXT_PUBLIC_BASE_PATH must be present at BUILD time (it's inlined). Build with
+    it set or every /smart-alt-gen route 404s.
+  - PM2 standalone server gets env ONLY from ecosystem.config.js (not .env auto).
+    To reload .env values: `pm2 restart ecosystem.config.js` (or delete+start).
+  - Managed-pricing apps CANNOT use the Billing API (appSubscriptionCreate/
+    appUsageRecordCreate). Overflow uses App Events, caps enforced by us.
+  - Dev stores cannot approve PAID managed-pricing subscriptions -> use the
+    BILLING_BYPASS_SHOPS allowlist for testing + the reviewer.
+  - Webhook "failure rate" includes Shopify's own invalid-HMAC security probes
+    (we correctly 401 them) + stale ngrok-era registrations — not real failures.
+  - "Dangerous site" Chrome warning seen once was a transient Safe-Browsing
+    flag (transparency report showed "no data") — not a domain listing; cleared.
+  - App handle (smartaltgen-2) + URL subpath (/smart-alt-gen) are NOT branding and
+    must NOT be changed casually (immutable / 5 coordinated edits). Name = label.
+
+================================================================================
+GLOBAL CLAUDE SKILLS INSTALLED (~/.claude/skills/, persist across sessions)
+================================================================================
+  design-auditor  -> "audit my design" / "review my UI" : scored 19-category
+                     design critique (blocker/critical/warning/tip).
+                     Last audit of this app scored 64/100 (1 critical: empty
+                     privacy/terms hrefs; warnings: reduced-motion, touch targets,
+                     focus, dark mode, i18n, contrast). Ethics 100/100.
+  design-styles   -> "make it look like <brand>" : 16 brand DESIGN.md style
+                     guides (apple, vercel, notion, nike, spotify, spacex, ...).
+================================================================================

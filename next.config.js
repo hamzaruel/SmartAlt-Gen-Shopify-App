@@ -106,6 +106,9 @@ const nextConfig = {
       '/': ['./middleware.js'],
     },
     serverComponentsExternalPackages: ['mongodb'],
+    // Enables instrumentation.js register() — used to boot the scheduled bulk-edit
+    // ticker once when the server process starts.
+    instrumentationHook: true,
   },
   images: {
     unoptimized: true,

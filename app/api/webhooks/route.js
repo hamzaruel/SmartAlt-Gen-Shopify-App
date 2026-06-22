@@ -2,6 +2,8 @@ import crypto from "crypto";
 import { deleteShop } from "@/lib/db";
 import { clearSubscription } from "@/lib/billing/usage";
 import { deleteScanRow } from "@/lib/scanDb";
+import { deleteTasksForShop } from "@/lib/scheduledTasks";
+import { deleteGenerationData } from "@/lib/generationJob";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +43,7 @@ export async function POST(req) {
   // only the shop's access token, billing usage, and its own scan metadata — so:
   //  - customers/data_request: nothing to return (we hold no customer data)
   //  - customers/redact:       nothing to delete
-  //  - shop/redact:            erase EVERYTHING for the shop (token, usage, scan)
+  //  - shop/redact:            erase EVERYTHING for the shop (token, usage, scan, generation queue)
   const topic = req.headers.get("x-shopify-topic") || "";
   let payload = {};
   try { payload = JSON.parse(rawBody || "{}"); } catch { /* ignore */ }
@@ -52,6 +54,8 @@ export async function POST(req) {
       await deleteShop(shop);
       await clearSubscription(shop);
       await deleteScanRow(shop);
+      await deleteTasksForShop(shop);
+      await deleteGenerationData(shop);
       console.log("✅ shop/redact — erased all data for", shop);
     } catch (e) {
       console.error("shop/redact: cleanup failed", e);

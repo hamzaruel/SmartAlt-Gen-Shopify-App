@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getShopToken } from '@/lib/serverAuth';
 import { embedAlts } from '@/lib/shopifyAdmin';
+import { dropAppliedRows } from '@/lib/generationJob';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,12 @@ export async function POST(request) {
   if (!items.length) return NextResponse.json({ applied: 0, total: 0, errors: [] });
 
   const { applied, errors } = await embedAlts(shop, token, items);
+
+  // Applied alt is now live in Shopify — drop those rows from the generation
+  // queue so it stays lean (keeps only still-pending / failed work).
+  if (applied && !errors?.length) {
+    await dropAppliedRows(shop, items.map((i) => i.key).filter(Boolean));
+  }
 
   return NextResponse.json({ applied, total: items.length, errors });
 }

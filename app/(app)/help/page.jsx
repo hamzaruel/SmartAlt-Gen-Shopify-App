@@ -111,6 +111,8 @@ export default function HelpPage() {
 
           <a
             href={`mailto:${SUPPORT_EMAIL}?subject=Alt Text Pro support`}
+            target="_blank"
+            rel="noopener noreferrer"
             aria-label={`Email us at ${SUPPORT_EMAIL}`}
             className="group relative mt-5 inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-indigo-500/20 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/40 active:translate-y-0 active:scale-[0.98]"
           >

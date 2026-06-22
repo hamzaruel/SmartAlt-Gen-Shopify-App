@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { deleteShop } from '@/lib/db';
 import { clearSubscription } from '@/lib/billing/usage';
 import { deleteScanRow } from '@/lib/scanDb';
+import { deleteTasksForShop } from '@/lib/scheduledTasks';
+import { deleteGenerationData } from '@/lib/generationJob';
 import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
@@ -32,6 +34,8 @@ export async function POST(request) {
       await deleteShop(shop);
       await clearSubscription(shop); // drop back to Free; Shopify cancels the charge
       await deleteScanRow(shop); // remove persisted scan data
+      await deleteTasksForShop(shop); // remove scheduled bulk-edit tasks
+      await deleteGenerationData(shop); // remove queued/finished generation rows
     }
     console.log('✅ app/uninstalled — cleaned up', shop);
   } catch (e) {

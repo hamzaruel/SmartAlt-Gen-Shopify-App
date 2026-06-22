@@ -161,6 +161,7 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { storeShop } from '@/lib/db';
+import { installOfflineToken } from '@/lib/offlineToken';
 
 export const dynamic = 'force-dynamic';
 //new one test
@@ -295,6 +296,13 @@ if (!savedState || savedState !== state) {
     });
 
     const stored = await storeShop(shop, access_token);
+    // The code-grant token is a DEPRECATED permanent offline token. Immediately
+    // migrate it to an EXPIRING offline pair (access + 90-day refresh) so the
+    // background bulk/scheduler jobs never make Admin calls with the deprecated
+    // token. If the exchange fails, installOfflineToken stores the legacy token as
+    // a fallback (lazy migration retries on the first job) — install never breaks.
+    const offlineState = await installOfflineToken(shop, access_token);
+    console.log(`🔑 Offline token install for ${shop}: ${offlineState}`);
 // 🔐 Register mandatory GDPR webhooks
 // const gdprTopics = [
  // { topic: 'CUSTOMERS_DATA_REQUEST', path: 'customers/data_request' },
