@@ -1,11 +1,81 @@
 ================================================================================
 ALT TEXT PRO (code/repo name: SmartAltGen) — SESSION HANDOFF
-Last updated: 2026-06-19
+Last updated: 2026-06-22
 Repo: github.com/SyedAoun95/smart-alt-gen  (branch: main)
-Latest commit at handoff: 3a83644 (error/image recovery — phase 1)
-   + uncommitted: PHASE 2 (bulk on the shared retry queue) — lib/generationJob.js,
-     lib/bulkRun.js, lib/altText.js, app/(app)/generate/page.jsx,
-     app/api/webhooks/* (GDPR), app/api/verify-queue/ (staging-only test harness)
+Latest commit: 6795b9d (disable Gemini thinking budget) — deployed & verified live.
+   + uncommitted at this handoff: lib/altText.js thinking-regression guard (extra
+     log field + warn), this handoff.txt.
+================================================================================
+
+================================================================================
+SESSION 2026-06-22 — THREE CHANGES (all deployed unless noted)
+================================================================================
+1. GEMINI COST FIX — DISABLE THINKING BUDGET  ★ highest-leverage change in project
+   FINDING (from live usageMetadata logs, NOT estimates): gemini-2.5-flash is a
+   REASONING model; by default it spent ~500–2,800 hidden "thinking" tokens per
+   image, BILLED AT THE OUTPUT RATE. total = prompt+output+thinking, so ~70–90%
+   of spend was reasoning we never use (one-line product alt text has nothing to
+   reason about). Real cost was ~$0.0022/image, ~8–14x higher than first guessed.
+   FIX (lib/altText.js): generationConfig.thinkingConfig.thinkingBudget = 0 on every
+   non-pro model in the chain (2.5-pro can't take 0 — has a minimum — and is the
+   ~never-hit last resort, so it keeps default thinking). + maxOutputTokens:100 cap.
+   VERIFIED LIVE: after deploy + `pm2 flush` + fresh generations, every log line
+   reads total = prompt+output EXACTLY (thinking = 0). The legacy SDK
+   (@google/generative-ai@0.24.1) DOES forward thinkingConfig (proven by
+   intercepting the request body) — no SDK migration needed.
+   MEASURED COST NOW: ~$0.000155/image (input ~332 @ $0.30/1M + output ~22 @
+   $2.50/1M). ~14x cheaper. Per-volume: 500≈$0.08, 1k≈$0.15, 10k≈$1.55, 50k≈$7.70.
+   MARGINS (verified): Starter $4.99/1k ~97%, Growth $9.99/10k ~84%,
+   Compliance $19.99/50k ~61% WORST-CASE (one-time backfill; steady-state pennies).
+   Before the fix Growth & Compliance were UNDERWATER at max usage.
+   REGRESSION GUARD (lib/altText.js): the per-call log now prints `thinking:N` and
+   warns loudly if a non-pro model bills >50 thinking tokens — thinking-on is the
+   DEFAULT, so any SDK/model/config change could silently bring it back and ~14x
+   costs. KEEP the usageMetadata logging permanently — it's the early-warning system.
+   STILL OPEN (owner): A/B ~30 generated alt texts (across product types, esp.
+   multi-object scenes) to confirm quality held with thinking off. If one type
+   degrades, set thinkingBudget to a small value (e.g. 128), do NOT revert to default.
+   NOTE: dedupe (~25%) + Gemini Batch Mode (~50%) are now OPTIMIZATIONS for extra
+   Compliance-backfill margin, NOT survival fixes.
+
+2. CONCURRENCY — CHUNK 3 → 10 (lib/generationJob.js). Shared engine, so manual +
+   bulk both run 10 concurrent Gemini calls/worker. Step to 15/20 only after
+   watching VPS RAM/CPU + 429 pauses; cap ~15 to protect the rare 2.5-pro fallback.
+
+3. EXPIRING OFFLINE TOKENS (Shopify deprecation — see its own section below).
+   Replaced permanent offline tokens with expiring (1h access + 90d refresh) via
+   token exchange. Supersedes the permanent-offline model described in §12 +
+   "TURSO DATA MODEL" below (those sections are now historical for the offline token).
+================================================================================
+
+================================================================================
+EXPIRING OFFLINE ACCESS TOKENS  (2026-06-22 — deployed & verified live)
+================================================================================
+WHY: Shopify retires non-expiring (permanent) offline tokens; all public apps must
+use EXPIRING offline tokens by 2027-01-01. The old code (callback + bulk/scheduler)
+minted & used a permanent offline token → "Deprecated offline token use" dashboard
+banner (rolling 30-day window; clears ~30 days after the LAST permanent-token call).
+MODEL: expiring offline token = 1h access token + 90d refresh token (rotates with
+no merchant present — what autonomous bulk/scheduler jobs need).
+FILES:
+  - lib/offlineToken.js (NEW): getValidOfflineToken() resolves a usable token for
+    background jobs — migrates a legacy permanent token, or refreshes an expired
+    one, lazily. installOfflineToken() mints the pair at install. HARD INVARIANT:
+    never drop the only working token before its replacement is durably stored
+    (exchange → PERSIST(retried) → use); failed exchange degrades to the prior
+    token (no lockout); failed persist caches the pair in-process and self-heals
+    on the next tick (no foreground needed). Single-flight migration claim.
+  - lib/db.js: +columns offline_token_expires_at, refresh_token,
+    refresh_token_expires_at, offline_migrating_at; +getOfflineRecord,
+    storeOfflinePair (durable/retried), claim/releaseOfflineMigration.
+  - app/api/auth/callback: storeOfflineToken → installOfflineToken (migrate code-
+    grant token to expiring pair; legacy fallback if exchange fails → never breaks
+    install). bulkRun.js + generationJob.js: getOfflineToken → getValidOfflineToken.
+VERIFIED: 24/24 logic checks (incl. broken-migration degradation). LIVE: fresh
+  install logs "Offline token install … migrated" + DB shows expiring pair; forced-
+  expiry refresh rotated the token live (refresh grant works). Legacy-token classify
+  via offline_token_expires_at IS NULL. NB the 3 old test shops had DEAD tokens
+  (invalid_subject_token) → can't migrate, but a dead token can't trip the banner.
 ================================================================================
 
 ================================================================================
@@ -253,7 +323,11 @@ ENV VARS (server .env at /var/www/smart-alt-gen/.env)
 ================================================================================
 TURSO DATA MODEL (tables this app creates)
 ================================================================================
-  shops(shop PK, access_token, offline_token, created_at)  -- offline_token = long-lived (install)
+  shops(shop PK, access_token, offline_token, offline_token_expires_at, refresh_token,
+        refresh_token_expires_at, offline_migrating_at, created_at)
+        -- offline_token is now an EXPIRING access token (1h); refresh_token (90d)
+        -- rotates it. offline_token_expires_at NULL = legacy permanent (pre-migration).
+        -- See "EXPIRING OFFLINE ACCESS TOKENS" section. getValidOfflineToken() resolves it.
   scheduled_tasks(id PK, shop, sources, mode, template, scope, skip_existing,
                   info_fields, instructions, recurrence, time_label, next_run_at,
                   status, last_run_at, last_summary, created_at)  -- bulk-edit schedules
