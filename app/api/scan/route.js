@@ -42,6 +42,7 @@ export async function POST(request) {
         position: item.position,
         width: item.width ?? null,
         height: item.height ?? null,
+        updatedAt: item.updatedAt ?? null,
         adminUrl: item.adminUrl ?? null,
         onlineUrl: item.onlineUrl ?? null,
         currentAlt: item.alt,

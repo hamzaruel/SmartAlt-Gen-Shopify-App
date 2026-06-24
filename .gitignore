@@ -24,3 +24,6 @@ build/
 # live app config backup
 *.BACKUP
 shopify.app.toml.accessibility-live-BACKUP
+
+# personal worklog / progress diary — NEVER commit
+WORKLOG.md
