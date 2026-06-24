@@ -8,9 +8,13 @@ embedded = true
 [webhooks]
 api_version = "2026-01"
 
-  [[webhooks.subscriptions]]
-  compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
-  uri = "/api/webhooks"
+  # Compliance webhooks disabled for local dev (--use-localhost): a localhost URI
+  # is rejected by Shopify as an internal domain and blocks the dev preview.
+  # These live in Aoun's deploy toml (shopify.app.toml) for the App Store; this
+  # local toml is never deployed. Re-enable if you ever deploy from this toml.
+  # [[webhooks.subscriptions]]
+  # compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
+  # uri = "/api/webhooks"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes

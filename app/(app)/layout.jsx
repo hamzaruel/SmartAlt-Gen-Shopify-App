@@ -53,14 +53,14 @@ export default function AppLayout({ children }) {
             Privacy Policy and Terms of Service page URLs once they exist. */}
         <footer className="mx-auto w-full max-w-6xl px-6 pb-10 pt-6 sm:px-8">
           <div className="flex flex-col items-center justify-between gap-4 border-t border-slate-200 pt-6 sm:flex-row">
-            <p className="text-sm text-slate-400">
-              © {new Date().getFullYear()} <span className="font-semibold text-slate-600">Alt Text Pro</span>. All rights reserved.
+            <p className="text-sm text-slate-600">
+              © {new Date().getFullYear()} <span className="font-semibold text-slate-800">Alt Text Pro</span>. All rights reserved.
             </p>
             <div className="flex items-center gap-6 text-sm">
-              <a href="" target="_blank" rel="noopener noreferrer" className="font-medium text-slate-500 transition hover:text-indigo-600">
+              <a href="" target="_blank" rel="noopener noreferrer" className="font-medium text-slate-700 transition hover:text-indigo-600">
                 Privacy Policy
               </a>
-              <a href="" target="_blank" rel="noopener noreferrer" className="font-medium text-slate-500 transition hover:text-indigo-600">
+              <a href="" target="_blank" rel="noopener noreferrer" className="font-medium text-slate-700 transition hover:text-indigo-600">
                 Terms of Service
               </a>
             </div>
