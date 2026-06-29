@@ -42,10 +42,10 @@ import { loadSettings } from '@/lib/settings';
 import { loadActivity, logActivity, relativeTime } from '@/lib/activity';
 
 const STEPS = [
-  { title: 'Scan', text: 'Find every image across products, collections, blogs and files, and see which need alt text.', icon: Search, grad: 'from-sky-500 to-sky-600 shadow-sky-500/30' },
-  { title: 'Choose', text: 'Pick an image type and how to edit: a custom template or AI.', icon: MousePointerClick, grad: 'from-indigo-500 to-indigo-600 shadow-indigo-500/30' },
-  { title: 'Generate', text: 'Get clean, accessible alt text under 120 characters.', icon: Wand2, grad: 'from-violet-500 to-violet-600 shadow-violet-500/30' },
-  { title: 'Embed', text: 'Save the alt text straight back into Shopify in one click.', icon: UploadCloud, grad: 'from-emerald-500 to-emerald-600 shadow-emerald-500/30' },
+  { title: 'Scan', text: 'Find every image in your store and see which need alt text.', icon: Search, grad: 'from-sky-500 to-sky-600 shadow-sky-500/30' },
+  { title: 'Choose', text: 'Pick an image type, then a template or AI.', icon: MousePointerClick, grad: 'from-indigo-500 to-indigo-600 shadow-indigo-500/30' },
+  { title: 'Generate', text: 'Get clean, SEO-friendly alt text in seconds.', icon: Wand2, grad: 'from-violet-500 to-violet-600 shadow-violet-500/30' },
+  { title: 'Embed', text: 'Save it back to Shopify in one click.', icon: UploadCloud, grad: 'from-emerald-500 to-emerald-600 shadow-emerald-500/30' },
 ];
 
 function Divider() {
@@ -213,7 +213,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-10">
       {error ? (
-        <div className="flex items-start justify-between gap-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="flex items-start justify-between gap-3 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
           <span>{error}</span>
           <button onClick={() => setError(null)} className="shrink-0 text-rose-400 hover:text-rose-600" aria-label="Dismiss">
             <X className="h-4 w-4" />
@@ -222,20 +222,21 @@ export default function DashboardPage() {
       ) : null}
 
       {/* ===== HERO (white card) ===== */}
-      <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-9">
+      <section className="rounded-xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-9">
         <div className="grid items-center gap-10 lg:grid-cols-[0.85fr_1.2fr]">
           {/* LEFT: copy + CTA (left-aligned) */}
           <div className="text-left">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-semibold text-indigo-600 shadow-sm ring-1 ring-indigo-100">
-              <Sparkles className="h-3.5 w-3.5" /> Accessibility &amp; image SEO
+              <Sparkles className="h-3.5 w-3.5" /> Image SEO &amp; Accessibility
             </span>
             <h1 className="mt-4 text-3xl font-bold leading-[1.25] tracking-[0.01em] text-slate-900 sm:text-4xl sm:leading-[1.25]">
               Every image,<br />
               <span className="whitespace-nowrap bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">described properly</span>
             </h1>
             <p className="mt-4 max-w-md text-base leading-relaxed text-slate-600">
-              <span className="font-semibold text-slate-800">Alt Text Pro</span> finds every image in your store and writes
-              clean, accessible alt text in one click.
+              <span className="font-semibold text-indigo-600">SEO-friendly alt text</span> for{' '}
+              <span className="font-semibold text-violet-600">every image</span> in{' '}
+              <span className="font-semibold text-indigo-600">one click</span>, so your store ranks higher and stays accessible.
             </p>
 
             {/* prompt + 3D push button */}
@@ -272,7 +273,7 @@ export default function DashboardPage() {
               <img
                 src={`${BASE_PATH}/hero-dashboard.png`}
                 alt=""
-                className="animate-float w-full rounded-2xl border border-slate-200 shadow-2xl shadow-indigo-500/25"
+                className="animate-float w-full max-w-md xl:max-w-lg rounded-xl border border-slate-200 shadow-2xl shadow-indigo-500/25"
               />
             </div>
           </div>
@@ -281,7 +282,7 @@ export default function DashboardPage() {
 
       {/* ===== Disabled-sources note (some sources turned off in Settings) ===== */}
       {disabledLabels.length ? (
-        <div className="flex items-start gap-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800 ring-1 ring-amber-100">
+        <div className="flex items-start gap-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 ring-1 ring-amber-100">
           <SlidersHorizontal className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
           <p>
             <span className="font-semibold">{disabledLabels.join(', ')}</span>{' '}
@@ -295,7 +296,7 @@ export default function DashboardPage() {
 
       {/* ===== Live scan progress (shown only while scanning) ===== */}
       {scanning ? (
-        <section className="rounded-2xl border border-slate-200/80 bg-white p-10 shadow-sm sm:p-14">
+        <section className="rounded-xl border border-slate-200/80 bg-white p-10 shadow-sm sm:p-14">
           <div className="flex flex-col items-center text-center">
             {/* soft spinner ring */}
             <div className="relative h-14 w-14">
@@ -327,26 +328,25 @@ export default function DashboardPage() {
       {/* ===== Store overview (hidden while (re)scanning, reappears + re-animates when done) ===== */}
       {scanned && !scanning ? (
         <>
-          <section ref={overviewRef} className="scroll-mt-6 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-9">
+          <section ref={overviewRef} className="scroll-mt-6 rounded-xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-9">
             {/* header */}
             <div className="mb-6">
               <h2 className="text-lg font-semibold text-slate-900">My store overview</h2>
               <p className="mt-1 text-sm text-slate-500">Alt text coverage across your whole store</p>
             </div>
 
-            {/* KPI row — icon chip overlaps the top border of each card */}
+            {/* KPI row — soft blended icon chip overlapping the top border */}
             <div className="grid grid-cols-2 gap-x-4 gap-y-9 pt-3 lg:grid-cols-4">
               {[
-                { label: 'Total store images', value: animTotal, chip: 'bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-indigo-500/30', Icon: LayoutGrid },
-                { label: 'Images with alt text', value: animWithAlt, chip: 'bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-emerald-500/30', Icon: CheckCircle2 },
-                { label: 'Missing alt text', value: animMissing, chip: 'bg-gradient-to-br from-rose-500 to-rose-600 shadow-rose-500/30', Icon: AlertTriangle },
-                { label: 'Needs improvement', value: animNeeds, chip: 'bg-gradient-to-br from-amber-500 to-amber-600 shadow-amber-500/30', Icon: AlertCircle },
+                { label: 'Total store images', value: animTotal, chip: 'bg-indigo-50 text-indigo-600 ring-indigo-100', Icon: LayoutGrid },
+                { label: 'Images with alt text', value: animWithAlt, chip: 'bg-emerald-50 text-emerald-600 ring-emerald-100', Icon: CheckCircle2 },
+                { label: 'Missing alt text', value: animMissing, chip: 'bg-rose-50 text-rose-600 ring-rose-100', Icon: AlertTriangle },
+                { label: 'Needs improvement', value: animNeeds, chip: 'bg-amber-50 text-amber-600 ring-amber-100', Icon: AlertCircle },
               ].map(({ label, value, chip, Icon }, i) => (
-                <div key={label} className="animate-card-in relative rounded-2xl border border-slate-200/80 bg-white px-5 pb-5 pt-12 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md" style={{ animationDelay: `${i * 70}ms` }}>
-                  {/* 3D glossy icon chip overlapping the top border */}
-                  <span className={`absolute -top-4 left-5 flex h-11 w-11 items-center justify-center rounded-xl text-white shadow-lg ring-1 ring-inset ring-white/25 ${chip}`}>
-                    <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-xl bg-white/20" />
-                    <Icon className="relative h-5 w-5" strokeWidth={1.75} />
+                <div key={label} className="animate-card-in relative rounded-xl border border-slate-200/80 bg-white px-5 pb-5 pt-12 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md" style={{ animationDelay: `${i * 70}ms` }}>
+                  {/* soft blended icon chip overlapping the top border */}
+                  <span className={`absolute -top-4 left-5 flex h-11 w-11 items-center justify-center rounded-xl ring-1 ring-inset ${chip}`}>
+                    <Icon className="h-5 w-5" strokeWidth={1.75} />
                   </span>
                   <div className="text-sm font-medium text-slate-500">{label}</div>
                   <div className="mt-1 text-2xl font-bold tracking-tight text-slate-900 tabular-nums">{value.toLocaleString()}</div>
@@ -357,7 +357,7 @@ export default function DashboardPage() {
             {/* Coverage + recent activity */}
             <div className="mt-4 grid gap-4 lg:grid-cols-5">
               {/* Coverage card */}
-              <div className="animate-card-in rounded-2xl bg-slate-50 p-6 ring-1 ring-slate-100 sm:p-7 lg:col-span-3" style={{ animationDelay: '120ms' }}>
+              <div className="animate-card-in rounded-xl bg-slate-50 p-6 ring-1 ring-slate-100 sm:p-7 lg:col-span-3" style={{ animationDelay: '120ms' }}>
                 <h3 className="text-base font-semibold text-slate-900">Alt text coverage</h3>
                 <p className="mt-0.5 text-sm text-slate-500">How much of your store is described</p>
 
@@ -366,23 +366,25 @@ export default function DashboardPage() {
                   {/* outer progress ring */}
                   <svg viewBox="0 0 120 120" className="absolute inset-0 h-full w-full -rotate-90">
                     <circle cx="60" cy="60" r="56" fill="none" stroke="#e2e8f0" strokeWidth="4" />
-                    <circle cx="60" cy="60" r="56" fill="none" stroke="#10b981" strokeWidth="4" strokeLinecap="round"
+                    <circle cx="60" cy="60" r="56" fill="none" stroke="#7c3aed" strokeWidth="4" strokeLinecap="round"
                       strokeDasharray={`${(2 * Math.PI * 56 * animCoverage) / 100} ${2 * Math.PI * 56}`} />
                   </svg>
                   {/* inner water circle */}
                   <div className="absolute inset-[11px] overflow-hidden rounded-full bg-white ring-1 ring-slate-100">
                     <div
-                      className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-emerald-400 to-emerald-200 transition-[height] duration-700 ease-out"
+                      className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-violet-500 to-indigo-300 transition-[height] duration-700 ease-out"
                       style={{ height: `${animCoverage}%` }}
                     >
                       {/* floating wave surface */}
-                      <svg className="animate-wave absolute -top-[7px] left-0 h-3 w-[200%] text-emerald-300" viewBox="0 0 1200 20" preserveAspectRatio="none" fill="currentColor">
+                      <svg className="animate-wave absolute -top-[7px] left-0 h-3 w-[200%] text-violet-400" viewBox="0 0 1200 20" preserveAspectRatio="none" fill="currentColor">
                         <path d="M0,10 C150,0 150,0 300,10 C450,20 450,20 600,10 C750,0 750,0 900,10 C1050,20 1050,20 1200,10 L1200,20 L0,20 Z" />
                       </svg>
                     </div>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-4xl font-bold tracking-tight text-emerald-900 tabular-nums">{Math.round(animCoverage)}%</span>
-                      <span className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-emerald-800/60">covered</span>
+                      <div className="flex flex-col items-center rounded-2xl bg-white/70 px-5 py-2 shadow-sm backdrop-blur-[2px]">
+                        <span className="text-4xl font-bold tracking-tight text-violet-700 tabular-nums">{Math.round(animCoverage)}%</span>
+                        <span className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-slate-500">covered</span>
+                      </div>
                     </div>
                   </div>
                   {/* floating stat badges */}
@@ -431,7 +433,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Recent activity — timeline */}
-              <div className="animate-card-in flex flex-col rounded-2xl bg-slate-50 p-6 ring-1 ring-slate-100 lg:col-span-2" style={{ animationDelay: '200ms' }}>
+              <div className="animate-card-in flex flex-col rounded-xl bg-slate-50 p-6 ring-1 ring-slate-100 lg:col-span-2" style={{ animationDelay: '200ms' }}>
                 <div className="mb-1 flex items-center justify-between">
                   <h3 className="text-base font-semibold text-slate-900">Recent activity</h3>
                   <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-slate-400 ring-1 ring-slate-100">
@@ -497,7 +499,7 @@ export default function DashboardPage() {
       ) : null}
 
       {/* ===== How it works (white card) ===== */}
-      <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-9">
+      <section className="rounded-xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-9">
         <div className="mb-7">
           <h2 className="text-lg font-semibold text-slate-900">How it works</h2>
           <p className="mt-1 text-sm text-slate-500">From scan to embed in four simple steps</p>
@@ -517,17 +519,16 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* ===== WCAG tip ===== */}
-      <div className="flex items-start gap-4 rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 to-white p-5 shadow-sm sm:p-6">
-        <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-sky-500 to-sky-600 text-white shadow-lg shadow-sky-500/30 ring-1 ring-inset ring-white/25">
+      {/* ===== Why alt text matters tip ===== */}
+      <div className="flex items-start gap-4 rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-5 shadow-sm sm:p-6">
+        <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-violet-500/30 ring-1 ring-inset ring-white/25">
           <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-white/20" />
           <Info className="relative h-5 w-5" strokeWidth={1.75} />
         </span>
         <div>
           <h3 className="text-sm font-semibold text-slate-900">Why alt text matters</h3>
           <p className="mt-1 text-sm leading-relaxed text-slate-600">
-            Alt text lets screen readers describe images and boosts image SEO. WCAG recommends concise,
-            meaningful text, so Alt Text Pro keeps every alt under 120 characters.
+            Good alt text turns your images into search traffic, and your store into a place everyone can shop.
           </p>
         </div>
       </div>

@@ -34,20 +34,20 @@ const TABS = [
   { id: 'ALL', label: 'All' },
   { id: 'MISSING', label: 'Missing' },
   { id: 'NEEDS_IMPROVEMENT', label: 'Needs improvement' },
-  { id: 'OPTIMIZED', label: 'Optimized' },
+  { id: 'OPTIMIZED', label: 'Properly described' },
 ];
 
 const TAB_NOTE = {
   ALL: 'Every image found across your products, files, blog posts and collections.',
-  MISSING: 'Images with no alt text. Screen readers can’t describe these, so they need it most. Start here.',
+  MISSING: 'Images with no alt text. These miss out on image SEO, and screen readers can’t describe them, so they need it most. Start here.',
   NEEDS_IMPROVEMENT:
-    'Images whose alt text isn’t WCAG-clean: symbols or punctuation, stray dashes, the word “image”, or too generic.',
-  OPTIMIZED: 'Images that already have clear, WCAG-friendly alt text. Nothing to do here.',
+    'Images whose alt text is weak for SEO: symbols or punctuation, stray dashes, the word “image”, or too generic.',
+  OPTIMIZED: 'Images that already have clear, SEO-friendly alt text. Nothing to do here.',
 };
 
 const REASON_TEXT = {
   symbols: 'Has special characters or symbols',
-  'too-long': 'Longer than 120 characters',
+  'too-long': 'Longer than search engines show',
   generic: 'Too generic',
   duplicate: 'Duplicate alt text',
 };
@@ -67,7 +67,7 @@ function reasonDetail(img) {
   const alt = img.currentAlt || '';
   switch (img.reason) {
     case 'too-long':
-      return `This alt is ${alt.length} characters. Keep it under 120 so screen readers stay concise.`;
+      return `This alt is ${alt.length} characters. Keep it concise so search engines and screen readers use the whole thing.`;
     case 'symbols': {
       const bad = [...new Set((alt.match(/[^\p{L}\p{N}\s.,'’!?:;&()\-]/gu) || []))];
       return bad.length
@@ -101,9 +101,9 @@ function StatusBadge({ status }) {
 function fileName(url) {
   try {
     const last = new URL(url).pathname.split('/').pop() || '';
-    return decodeURIComponent(last.split('?')[0]) || '—';
+    return decodeURIComponent(last.split('?')[0]) || 'image';
   } catch {
-    return '—';
+    return 'image';
   }
 }
 
@@ -255,7 +255,12 @@ export default function ImagesPage() {
               </span>
               <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">All store images</h1>
             </div>
-            <p className="mt-2.5 max-w-xl text-base leading-relaxed text-slate-600">Browse every image in your store and check its alt text status. Use the filters to find exactly what needs fixing.</p>
+            <p className="mt-2.5 max-w-xl text-base leading-relaxed text-slate-600">
+              Browse <span className="font-semibold text-violet-600">every image</span> in your store and check its{' '}
+              <span className="font-semibold text-indigo-600">alt text status</span>. Use the{' '}
+              <span className="font-semibold text-violet-600">filters</span> to find exactly{' '}
+              <span className="font-semibold text-indigo-600">what needs fixing</span>.
+            </p>
           </div>
 
           {/* section illustration (soft float, like the dashboard hero) */}
@@ -391,7 +396,7 @@ export default function ImagesPage() {
                           <td className="px-5 py-5"><StatusBadge status={img.status} /></td>
                           {/* Updated */}
                           <td className="whitespace-nowrap px-5 py-5 text-sm font-medium text-slate-500">
-                            {img.updatedAt ? relativeTime(new Date(img.updatedAt).getTime()) : '—'}
+                            {img.updatedAt ? relativeTime(new Date(img.updatedAt).getTime()) : 'Unknown'}
                           </td>
                         </tr>
                       ))}

@@ -1,4 +1,4 @@
-# 🖼️ SmartAltGen — Shopify Alt Text Generator
+# 🖼️ Alt Text Pro — Shopify Alt Text Generator
 
 A Shopify embedded app that scans every image in a store and generates **WCAG-compliant alt text** (max 120 characters), then writes it back to the store with one click. Merchants choose between fast template-based alt text or AI vision that actually "sees" each image.
 
@@ -11,7 +11,7 @@ A Shopify embedded app that scans every image in a store and generates **WCAG-co
 
 ## 📖 Overview
 
-**SmartAltGen** helps Shopify merchants make their store accessible by giving every image a meaningful, screen-reader-friendly description. It scans images across the whole store, flags the ones missing or with weak alt text, generates fresh alt text, and embeds it back into Shopify — all from inside the Shopify admin.
+**Alt Text Pro** helps Shopify merchants make their store accessible by giving every image a meaningful, screen-reader-friendly description. It scans images across the whole store, flags the ones missing or with weak alt text, generates fresh alt text, and embeds it back into Shopify — all from inside the Shopify admin.
 
 ### Why it matters
 - ♿ **Accessibility (WCAG)** — every image needs descriptive alt text for screen readers
@@ -52,7 +52,7 @@ A Shopify embedded app that scans every image in a store and generates **WCAG-co
 
 ## 🔐 How auth works
 
-SmartAltGen uses Shopify **OAuth token exchange** (managed install). On each API call the client sends an App Bridge session token; the server exchanges it for a short-lived **online access token** and caches it in Turso. Turso stores **only** the shop + token — no image data is persisted; images are fetched live from Shopify on every scan.
+Alt Text Pro uses Shopify **OAuth token exchange** (managed install). On each API call the client sends an App Bridge session token; the server exchanges it for a short-lived **online access token** and caches it in Turso. Turso stores **only** the shop + token — no image data is persisted; images are fetched live from Shopify on every scan.
 
 ---
 

@@ -8,11 +8,11 @@ const SUPPORT_EMAIL = 'support@ecomback.com';
 const FAQS = [
   {
     q: 'What does Alt Text Pro do?',
-    a: 'It scans every image in your store and generates clear, WCAG-friendly alt text, then saves it back to Shopify, so screen readers can describe your images and your image SEO improves.',
+    a: 'It scans every image in your store and generates clear, SEO-friendly alt text, then saves it back to Shopify, so your images rank better in search and screen readers can describe them too.',
   },
   {
     q: 'What is alt text and why does it matter?',
-    a: 'Alt text is a short written description of an image. Screen readers read it aloud for shoppers who can’t see the image, and search engines use it to understand your visuals. Clear alt text is also part of WCAG accessibility guidelines.',
+    a: 'Alt text is a short written description of an image. Search engines use it to understand your visuals, so clear alt text is one of the strongest ways to improve your image SEO. It also makes your store more accessible, since screen readers read it aloud for shoppers who can’t see the image.',
   },
   {
     q: 'Which images does it scan?',
@@ -32,7 +32,7 @@ const FAQS = [
   },
   {
     q: 'How long is the generated alt text?',
-    a: 'Always under 120 characters, with no quotes or stray symbols, kept concise the way WCAG recommends.',
+    a: 'It’s kept clear and concise, with no quotes or stray symbols, the right length for search engines to use the whole description.',
   },
   {
     q: 'Can I edit the alt text before saving?',

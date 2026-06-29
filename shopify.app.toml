@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "a7267757e6ee2a05c2f043406a348e11"
-name = "SmartAltGen"
+name = "Alt Text Pro"
 application_url = "https://www.accessibilitygenerator.com/smart-alt-gen"
 embedded= true
 
