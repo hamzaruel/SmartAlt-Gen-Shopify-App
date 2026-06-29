@@ -38,20 +38,20 @@ export default function AppLayout({ children }) {
         <s-link href={`${BASE_PATH}/dashboard${qs}`} rel="home">
           Overview
         </s-link>
-        <s-link href={`${BASE_PATH}/images${qs}`}>Image audit</s-link>
-        <s-link href={`${BASE_PATH}/generate${qs}`}>Alt text studio</s-link>
+        <s-link href={`${BASE_PATH}/images${qs}`}>Alt text report</s-link>
+        <s-link href={`${BASE_PATH}/generate${qs}`}>Generate &amp; embed</s-link>
         <s-link href={`${BASE_PATH}/settings${qs}`}>Preferences</s-link>
         <s-link href={`${BASE_PATH}/billing${qs}`}>Pricing plans</s-link>
         <s-link href={`${BASE_PATH}/help${qs}`}>Help center</s-link>
       </s-app-nav>
 
       <main className="min-h-screen bg-slate-50">
-        <div className="mx-auto w-full max-w-6xl px-6 py-6 sm:px-8 lg:py-8">{children}</div>
+        <div className="mx-auto w-full max-w-7xl px-6 py-6 sm:px-8 lg:py-8">{children}</div>
 
         {/* Footer with legal links.
             TODO: replace the empty href values below with the external
             Privacy Policy and Terms of Service page URLs once they exist. */}
-        <footer className="mx-auto w-full max-w-6xl px-6 pb-10 pt-6 sm:px-8">
+        <footer className="mx-auto w-full max-w-7xl px-6 pb-10 pt-6 sm:px-8">
           <div className="flex flex-col items-center justify-between gap-4 border-t border-slate-200 pt-6 sm:flex-row">
             <p className="text-sm text-slate-600">
               © {new Date().getFullYear()} <span className="font-semibold text-slate-800">Alt Text Pro</span>. All rights reserved.

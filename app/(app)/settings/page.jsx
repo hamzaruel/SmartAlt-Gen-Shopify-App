@@ -30,7 +30,7 @@ const LANGUAGES = [
 const STATUS_TOGGLES = [
   { id: 'MISSING', label: 'Missing alt text', dot: 'bg-rose-500' },
   { id: 'NEEDS_IMPROVEMENT', label: 'Needs improvement', dot: 'bg-amber-500' },
-  { id: 'OPTIMIZED', label: 'Already optimized', dot: 'bg-emerald-500' },
+  { id: 'OPTIMIZED', label: 'Properly described', dot: 'bg-emerald-500' },
 ];
 
 function Toggle({ checked, onChange }) {

@@ -16,20 +16,25 @@ export async function POST(request) {
   const token = await getShopToken(request, shop);
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = await request.json().catch(() => ({}));
-  const allowEmpty = body.allowEmpty === true;
-  const items = (Array.isArray(body.items) ? body.items : [])
-    .map((i) => ({ ...i, alt: allowEmpty ? (i.alt ?? '') : i.alt }))
-    .filter((i) => i?.id && i?.source && (allowEmpty || (i.alt ?? '').trim()));
-  if (!items.length) return NextResponse.json({ applied: 0, total: 0, errors: [] });
+  try {
+    const body = await request.json().catch(() => ({}));
+    const allowEmpty = body.allowEmpty === true;
+    const items = (Array.isArray(body.items) ? body.items : [])
+      .map((i) => ({ ...i, alt: allowEmpty ? (i.alt ?? '') : i.alt }))
+      .filter((i) => i?.id && i?.source && (allowEmpty || (i.alt ?? '').trim()));
+    if (!items.length) return NextResponse.json({ applied: 0, total: 0, errors: [] });
 
-  const { applied, errors } = await embedAlts(shop, token, items);
+    const { applied, errors } = await embedAlts(shop, token, items);
 
-  // Applied alt is now live in Shopify — drop those rows from the generation
-  // queue so it stays lean (keeps only still-pending / failed work).
-  if (applied && !errors?.length) {
-    await dropAppliedRows(shop, items.map((i) => i.key).filter(Boolean));
+    // Applied alt is now live in Shopify — drop those rows from the generation
+    // queue so it stays lean (keeps only still-pending / failed work).
+    if (applied && !errors?.length) {
+      await dropAppliedRows(shop, items.map((i) => i.key).filter(Boolean));
+    }
+
+    return NextResponse.json({ applied, total: items.length, errors });
+  } catch (e) {
+    console.error('apply route crashed:', e);
+    return NextResponse.json({ error: e?.message || 'Apply crashed', stack: String(e?.stack || '').split('\n').slice(0, 4).join(' | ') }, { status: 500 });
   }
-
-  return NextResponse.json({ applied, total: items.length, errors });
 }

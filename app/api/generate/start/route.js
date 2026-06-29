@@ -32,13 +32,16 @@ export async function POST(request) {
   if (!ent.plan.ai || !ent.active) {
     return NextResponse.json({
       upgradeRequired: true,
+      planName: ent.plan.name,
       error: `AI generation isn’t included in your ${ent.plan.name} plan. Upgrade to generate AI alt text.`,
     });
   }
   if (ent.remaining <= 0) {
     return NextResponse.json({
       quotaReached: true,
-      error: 'You’ve reached your monthly AI image limit. Upgrade your plan or wait for the next billing cycle.',
+      planName: ent.plan.name,
+      quota: ent.plan.quota,
+      error: 'You’ve used all of your AI alt text on this plan. Upgrade to generate more.',
     });
   }
 
@@ -55,5 +58,15 @@ export async function POST(request) {
   // Fire-and-forget — keeps running in the PM2 process after this response.
   runJob(shop);
 
-  return NextResponse.json({ status: 'running', total: items.length });
+  // If the request asks for more images than the plan allows, the worker only does
+  // `remaining` of them. Tell the client so it can explain + offer an upgrade.
+  return NextResponse.json({
+    status: 'running',
+    total: items.length,
+    capped: items.length > ent.remaining,
+    allowed: ent.remaining,
+    requested: items.length,
+    planName: ent.plan.name,
+    quota: ent.plan.quota,
+  });
 }

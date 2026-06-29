@@ -39,6 +39,7 @@ export async function POST(request) {
         title: item.title,
         type: item.type,
         vendor: item.vendor ?? null,
+        collections: item.collections ?? [],
         position: item.position,
         width: item.width ?? null,
         height: item.height ?? null,
