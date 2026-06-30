@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Check, Loader2, Sparkles, Zap } from 'lucide-react';
+import { Check, CheckCircle2, Loader2, Sparkles, Zap, TrendingUp, Building2 } from 'lucide-react';
 import { PLANS } from '@/lib/billing/plans';
 import { authHeaders } from '@/lib/sessionToken';
 import { BASE_PATH } from '@/lib/basePath';
@@ -10,16 +10,39 @@ import { BASE_PATH } from '@/lib/basePath';
 const ORDER = ['free', 'starter', 'growth', 'compliance'];
 
 function priceLabel(p) {
-  return p.price === 0 ? 'Free' : `$${p.price.toFixed(2)}`;
+  return p.price === 0 ? '$0' : `$${p.price.toFixed(2)}`;
 }
 
-function quotaLabel(p) {
-  if (p.id === 'free') return '5 AI images to try + title-based';
-  if (!p.ai) return 'Title-based alt text';
-  const base = `${p.quota.toLocaleString()} AI images / mo`;
-  if (p.overflow) return `${base}, then $${p.overflow.blockPrice}/${(p.overflow.blockSize / 1000)}k`;
-  return base;
-}
+// Short tagline under each plan name.
+const TAGLINE = {
+  free: 'Get started for free',
+  starter: 'For small stores',
+  growth: 'For growing catalogs',
+  compliance: 'For high-volume stores',
+};
+
+// Headline (AI quota) + the bullet features shown on each card.
+const HEADLINE = {
+  free: '5 AI image descriptions to try',
+  starter: '1,000 AI images / month',
+  growth: '10,000 AI images / month',
+  compliance: '50,000 AI images / month',
+};
+
+// A distinct headline icon per tier (small -> enterprise).
+const PLAN_ICON = {
+  free: Sparkles,
+  starter: Zap,
+  growth: TrendingUp,
+  compliance: Building2,
+};
+
+const FEATURES = {
+  free: ['Unlimited title-based alt text', 'Bulk edit using product titles', 'Scan every image type'],
+  starter: ['Unlimited title-based alt text', 'Bulk AI generation & scheduling', 'Email support'],
+  growth: ['Everything in Starter', 'Priority AI generation', 'For growing catalogs'],
+  compliance: ['Then $4 per extra 10,000', 'Everything in Growth', 'Highest volume & throughput'],
+};
 
 export default function BillingPage() {
   const searchParams = useSearchParams();
@@ -68,23 +91,31 @@ export default function BillingPage() {
 
   return (
     <div className="space-y-8">
-      <header>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Plans &amp; billing</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Free gives you title-based alt text for product images. Upgrade for AI-written, SEO-friendly alt text.
+      {/* ===== Header ===== */}
+      <header className="mx-auto max-w-2xl text-center">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-semibold text-violet-600 shadow-sm ring-1 ring-violet-100">
+          <Sparkles className="h-3.5 w-3.5" /> Plans &amp; pricing
+        </span>
+        <h1 className="mt-3 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          Simple, transparent{' '}
+          <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">pricing</span>
+        </h1>
+        <p className="mt-2.5 text-base leading-relaxed text-slate-600">
+          Choose the plan that fits your catalog. Switch or cancel anytime.
         </p>
       </header>
 
+      {/* ===== Current usage ===== */}
       {status?.ai ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
+        <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between text-sm">
             <span className="font-medium text-slate-700">
-              {status.planName} · {used.toLocaleString()} of {quota.toLocaleString()} AI images used this cycle
+              <span className="font-semibold text-indigo-700">{status.planName}</span> · {used.toLocaleString()} of {quota.toLocaleString()} AI images used this cycle
             </span>
-            <span className="text-slate-500">{pct}%</span>
+            <span className="font-semibold text-slate-500 tabular-nums">{pct}%</span>
           </div>
           <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-600" style={{ width: `${pct}%` }} />
+            <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500" style={{ width: `${pct}%` }} />
           </div>
           {status.overflow && used > quota ? (
             <p className="mt-2 text-xs text-slate-500">
@@ -95,10 +126,11 @@ export default function BillingPage() {
       ) : null}
 
       {error ? (
-        <div className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
+        <div className="mx-auto max-w-3xl rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      {/* ===== Plan cards ===== */}
+      <div className="grid items-stretch gap-5 md:grid-cols-2 xl:grid-cols-4">
         {ORDER.map((id) => {
           const p = PLANS[id];
           const isCurrent = id === currentPlan;
@@ -106,40 +138,72 @@ export default function BillingPage() {
           return (
             <div
               key={id}
-              className={`relative flex flex-col rounded-2xl border bg-white p-5 ${
-                isCurrent ? 'border-indigo-400 ring-2 ring-indigo-100' : 'border-slate-200'
+              className={`relative flex flex-col rounded-2xl bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${
+                featured ? 'border-2 border-indigo-300 ring-1 ring-indigo-100' : 'border border-slate-200'
               }`}
             >
-              {featured && !isCurrent ? (
-                <span className="absolute -top-2.5 left-5 rounded-full bg-indigo-600 px-2 py-0.5 text-[11px] font-semibold text-white">
-                  Popular
+              {featured ? (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-to-r from-indigo-600 to-violet-600 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white shadow-sm">
+                  Most popular
                 </span>
               ) : null}
-              <div className="flex items-center gap-2">
-                {p.ai ? <Sparkles className="h-4 w-4 text-indigo-500" /> : <Zap className="h-4 w-4 text-slate-400" />}
-                <h3 className="text-base font-semibold text-slate-900">{p.name}</h3>
-              </div>
-              <div className="mt-2">
-                <span className="text-2xl font-bold text-slate-900">{priceLabel(p)}</span>
-                {p.price > 0 ? <span className="text-sm text-slate-500"> /mo</span> : null}
-              </div>
-              <p className="mt-1 text-sm text-slate-600">{quotaLabel(p)}</p>
-              <p className="mt-2 flex-1 text-sm text-slate-500">{p.blurb}</p>
 
-              <div className="mt-4">
+              {/* name + tagline */}
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">{p.name}</h3>
+                  <p className="mt-0.5 text-xs font-medium text-slate-500">{TAGLINE[id]}</p>
+                </div>
                 {isCurrent ? (
-                  <div className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-700">
+                  <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 ring-1 ring-emerald-100">Current</span>
+                ) : null}
+              </div>
+
+              {/* price */}
+              <div className="mt-4 flex items-baseline gap-1">
+                <span className="text-3xl font-bold tracking-tight text-slate-900">{priceLabel(p)}</span>
+                <span className="text-sm font-medium text-slate-500">/mo</span>
+              </div>
+
+              {/* headline feature */}
+              {(() => { const HeadIcon = PLAN_ICON[id]; return (
+              <div className="mt-5 flex items-center gap-2.5 border-t border-slate-100 pt-5">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-sm">
+                  <HeadIcon className="h-4 w-4" />
+                </span>
+                <span className="text-sm font-semibold text-slate-900">{HEADLINE[id]}</span>
+              </div>
+              ); })()}
+
+              {/* features */}
+              <ul className="mt-4 flex-1 space-y-2.5">
+                {FEATURES[id].map((f) => (
+                  <li key={f} className="flex items-start gap-2.5 text-sm text-slate-600">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+
+              {/* CTA */}
+              <div className="mt-6">
+                {isCurrent ? (
+                  <div className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-100">
                     <Check className="h-4 w-4" /> Current plan
                   </div>
                 ) : id === 'free' ? (
-                  <div className="inline-flex w-full items-center justify-center rounded-xl bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-500">
-                    Included
+                  <div className="inline-flex w-full items-center justify-center rounded-xl bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-500 ring-1 ring-inset ring-slate-100">
+                    Included free
                   </div>
                 ) : (
                   <button
                     onClick={() => subscribe(id)}
                     disabled={busy !== null || !shop}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-60"
+                    className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition hover:-translate-y-0.5 disabled:opacity-60 ${
+                      featured
+                        ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/20 hover:shadow-lg'
+                        : 'border border-indigo-200 bg-white text-indigo-700 hover:bg-indigo-50'
+                    }`}
                   >
                     {busy === id ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                     {currentPlan === 'free' ? 'Choose plan' : 'Switch plan'}
@@ -151,8 +215,8 @@ export default function BillingPage() {
         })}
       </div>
 
-      <p className="text-xs text-slate-400">
-        Charges are billed through Shopify. Title-based alt text is always free and never counts toward your AI quota.
+      <p className="mx-auto max-w-2xl text-center text-sm font-medium text-slate-600">
+        Payments are handled securely by Shopify. Title-based alt text stays free on every plan and never uses your AI quota.
       </p>
     </div>
   );

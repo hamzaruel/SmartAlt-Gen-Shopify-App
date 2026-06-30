@@ -246,7 +246,7 @@ export default function ImagesPage() {
         <div className="relative flex items-center justify-between gap-8">
           <div>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-indigo-600 shadow-sm ring-1 ring-indigo-100">
-              <Sparkles className="h-3.5 w-3.5" /> Accessibility &amp; image SEO
+              <Sparkles className="h-3.5 w-3.5" /> Alt text coverage report
             </span>
             <div className="mt-3 flex items-center gap-3">
               <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/30 ring-1 ring-inset ring-white/25">

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { LifeBuoy, ChevronDown, Mail, Clock, ShieldCheck } from 'lucide-react';
+import { LifeBuoy, ChevronDown, Mail, Clock, ShieldCheck, HelpCircle } from 'lucide-react';
 
 const SUPPORT_EMAIL = 'support@ecomback.com';
 
@@ -29,6 +29,10 @@ const FAQS = [
   {
     q: 'Do you store my images?',
     a: 'No. Images are read live from Shopify each time you scan. We only store your store’s secure access token so the app can work, nothing else.',
+  },
+  {
+    q: 'If I uninstall, will my alt text be removed?',
+    a: 'No. Your alt text is saved directly into Shopify, so it stays on every image even after you uninstall. Uninstalling only clears the app’s own data, like your access token and usage counts. Nothing you need is removed.',
   },
   {
     q: 'How long is the generated alt text?',
@@ -70,21 +74,39 @@ export default function HelpPage() {
   const [openIndex, setOpenIndex] = useState(0);
 
   return (
-    <div className="space-y-8">
-      {/* ===== Header ===== */}
-      <header className="animate-card-in flex items-center gap-4 rounded-2xl bg-gradient-to-br from-indigo-50 to-white p-6">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
-          <LifeBuoy className="h-5 w-5" />
-        </span>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Help center</h1>
-          <p className="mt-0.5 text-sm text-slate-600">Answers to common questions, and how to reach us.</p>
+    <div className="space-y-6">
+      {/* ===== Premium header ===== */}
+      <header className="animate-card-in relative overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-br from-violet-50 via-white to-indigo-50/60 p-6 shadow-sm sm:p-7">
+        <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-violet-200/30 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 left-1/4 h-52 w-52 rounded-full bg-fuchsia-200/25 blur-3xl" />
+        <div className="relative">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-violet-600 shadow-sm ring-1 ring-violet-100">
+            <LifeBuoy className="h-3.5 w-3.5" /> Help &amp; support
+          </span>
+          <div className="mt-3 flex items-center gap-3">
+            <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-violet-500/30 ring-1 ring-inset ring-white/25">
+              <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-white/20" />
+              <LifeBuoy className="relative h-5 w-5" strokeWidth={1.75} />
+            </span>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+              How can we{' '}
+              <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">help?</span>
+            </h1>
+          </div>
+          <p className="mt-2.5 max-w-xl text-base leading-relaxed text-slate-600">
+            Find quick answers to common questions below, or reach our team anytime.
+          </p>
         </div>
       </header>
 
       {/* ===== FAQ ===== */}
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Frequently asked questions</h2>
+        <div className="mb-1 flex items-center gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 ring-1 ring-inset ring-indigo-100">
+            <HelpCircle className="h-5 w-5" strokeWidth={1.75} />
+          </span>
+          <h2 className="text-base font-bold tracking-tight text-slate-900">Frequently asked questions</h2>
+        </div>
         {FAQS.map((item, i) => (
           <FaqItem
             key={item.q}
