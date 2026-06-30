@@ -230,7 +230,7 @@ export default function DashboardPage() {
               <Sparkles className="h-3.5 w-3.5" /> Image SEO &amp; Accessibility
             </span>
             <h1 className="mt-4 text-3xl font-bold leading-[1.25] tracking-[0.01em] text-slate-900 sm:text-4xl sm:leading-[1.25]">
-              Every image,<br />
+              Every image<br />
               <span className="whitespace-nowrap bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">described properly</span>
             </h1>
             <p className="mt-4 max-w-md text-base leading-relaxed text-slate-600">

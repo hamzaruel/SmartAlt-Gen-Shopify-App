@@ -231,7 +231,7 @@ export default function GeneratePage() {
   const [entitlement, setEntitlement] = useState(null); // { planName, quota, used, remaining, ai } for the inline AI quota meter
 
   // ---- Bulk edit (auto-apply) + scheduling ----
-  const [bulkScope, setBulkScope] = useState('missing'); // 'missing' | 'all'
+  const bulkScope = 'missing'; // bulk always targets images missing alt text (choice removed)
   const [bulkRun, setBulkRun] = useState(null);           // live progress of an immediate bulk run
   const [bulkBusy, setBulkBusy] = useState(false);
   const [showSchedule, setShowSchedule] = useState(false);
@@ -1608,42 +1608,6 @@ export default function GeneratePage() {
           </div>
         ) : (
           <div className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            {/* Scope choice */}
-            {editMode !== 'remove' ? (
-              <div>
-                <p className="mb-2 text-sm font-medium text-slate-700">Apply to</p>
-                <div className="flex flex-wrap gap-2.5">
-                  {[
-                    { id: 'missing', label: 'Only images missing alt text' },
-                    { id: 'all', label: `All ${selectedLabel.toLowerCase()}` },
-                  ].map((o) => {
-                    const active = bulkScope === o.id;
-                    return (
-                      <button
-                        key={o.id}
-                        onClick={() => setBulkScope(o.id)}
-                        className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition ${
-                          active ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-500/25' : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50'
-                        }`}
-                      >
-                        <span className={`flex h-4 w-4 items-center justify-center rounded-full border ${active ? 'border-white' : 'border-slate-300'}`}>
-                          {active ? <span className="h-2 w-2 rounded-full bg-white" /> : null}
-                        </span>
-                        {o.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-slate-600">This will remove alt text from {bulkTargets} {selectedLabel.toLowerCase()} that currently have it.</p>
-            )}
-
-            <p className="text-sm text-slate-600">
-              About <span className="font-semibold text-slate-800 tabular-nums">{bulkTargets}</span> {selectedLabel.toLowerCase()} will be processed
-              {' '}using <span className="font-semibold text-slate-800">{MODE_LABEL[editMode] || editMode}</span>, then written back to Shopify automatically.
-            </p>
-
             {/* live bulk progress */}
             {bulkRun && (bulkRun.status === 'running' || bulkBusy) ? (
               <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3">
@@ -1834,11 +1798,11 @@ export default function GeneratePage() {
           <Info className="h-4 w-4 text-indigo-500" /> Good to know
         </div>
         <ul className="ml-1 list-inside list-disc space-y-1.5 text-sm text-slate-600">
-          <li>Clear alt text is a strong SEO signal that helps your images rank in Google and image search.</li>
-          <li>It also makes your store more accessible, describing each image for shoppers who use screen readers.</li>
-          <li>Every alt is kept clean and concise, with no quotes or odd symbols.</li>
-          <li>Templates apply instantly; AI describes the actual image.</li>
-          <li>You can re-run generation or clear alt text anytime.</li>
+          <li>Clear alt text is a <span className="font-semibold text-indigo-600">strong SEO signal</span> that helps your images <span className="font-semibold text-violet-600">rank in Google</span> and image search.</li>
+          <li>It also makes your store more <span className="font-semibold text-violet-600">accessible</span>, describing each image for shoppers who use <span className="font-semibold text-indigo-600">screen readers</span>.</li>
+          <li>Every alt is kept <span className="font-semibold text-indigo-600">clean and concise</span>, with no quotes or odd symbols.</li>
+          <li><span className="font-semibold text-indigo-600">Templates</span> apply instantly; <span className="font-semibold text-violet-600">AI</span> describes the actual image.</li>
+          <li>You can <span className="font-semibold text-indigo-600">re-run</span> generation or <span className="font-semibold text-indigo-600">clear alt text</span> anytime.</li>
         </ul>
       </div>
 
