@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Wand2,
   UploadCloud,
@@ -23,10 +23,9 @@ import {
   Trash2,
   Zap,
   CalendarClock,
-  Clock,
-  Play,
   RefreshCw,
   ListChecks,
+  ArrowRight,
   Sparkles,
 } from 'lucide-react';
 import { loadScan, patchImages, hydrateScan } from '@/lib/scanStore';
@@ -197,9 +196,13 @@ function Pager({ page, totalPages, onPrev, onNext }) {
 
 export default function GeneratePage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const shop = searchParams.get('shop');
   const host = searchParams.get('host');
   const billingQs = `?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}`;
+  // After starting/scheduling a bulk edit we send the merchant to the Tasks page,
+  // where the run shows live status (pending → running → finished).
+  const tasksHref = `${BASE_PATH}/tasks${billingQs}`;
 
   const [allImages, setAllImages] = useState([]);
   const [selected, setSelected] = useState(null); // no type pre-selected
@@ -239,7 +242,6 @@ export default function GeneratePage() {
   const [schedDate, setSchedDate] = useState('');         // 'YYYY-MM-DD' (Run Once)
   const [schedTime, setSchedTime] = useState('09:00');    // 'HH:MM' local time
   const [schedWeekday, setSchedWeekday] = useState(1);    // 0=Sun … 6=Sat (Run Weekly)
-  const [tasks, setTasks] = useState([]);                 // scheduled tasks for this shop
   const bulkPollRef = useRef(null);
 
   const refresh = useCallback(() => {
@@ -790,8 +792,8 @@ export default function GeneratePage() {
       });
       const data = await res.json();
       if (data.error) { setError(data.error); if (/limit|upgrade|plan/i.test(data.error)) setUpgrade(true); return; }
-      setMessage('Bulk edit started. It runs in the background and writes back automatically. You can close this tab.');
-      startBulkPolling();
+      // Hand off to the Tasks page — the run shows there with live status.
+      router.push(tasksHref);
     } catch (e) {
       setError(e.message || 'Could not start the bulk edit.');
     }
@@ -819,15 +821,6 @@ export default function GeneratePage() {
     return d.getTime();
   }
 
-  const loadTasks = useCallback(async () => {
-    if (!shop) return;
-    try {
-      const res = await fetch(`${BASE_PATH}/api/schedule?shop=${encodeURIComponent(shop)}`, { headers: await authHeaders() });
-      const data = await res.json();
-      setTasks(Array.isArray(data.tasks) ? data.tasks : []);
-    } catch { /* ignore */ }
-  }, [shop]);
-
   async function createSchedule() {
     setError(null); setMessage(null);
     if (!selected || !editMode) { setError('Pick an image type and how to edit first.'); return; }
@@ -841,49 +834,18 @@ export default function GeneratePage() {
       });
       const data = await res.json();
       if (data.error) { setError(data.error); return; }
-      setMessage('Scheduled. It will run automatically at the time you set.');
       setShowSchedule(false);
-      loadTasks();
+      // Show the new scheduled task (and its future runs) on the Tasks page.
+      router.push(tasksHref);
     } catch (e) {
       setError(e.message || 'Could not schedule the task.');
     }
   }
 
-  async function removeTask(id) {
-    try {
-      await fetch(`${BASE_PATH}/api/schedule?shop=${encodeURIComponent(shop)}&id=${encodeURIComponent(id)}`, {
-        method: 'DELETE',
-        headers: await authHeaders(),
-      });
-      loadTasks();
-    } catch { /* ignore */ }
-  }
-
-  async function runTaskNow(task) {
-    setError(null); setMessage(null);
-    try {
-      const res = await fetch(`${BASE_PATH}/api/bulk/start?shop=${encodeURIComponent(shop)}`, {
-        method: 'POST',
-        headers: await authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({
-          sources: task.sources, mode: task.mode, template: task.template,
-          scope: task.scope, skipExisting: task.skipExisting,
-          infoFields: task.infoFields, instructions: task.instructions,
-        }),
-      });
-      const data = await res.json();
-      if (data.error) { setError(data.error); return; }
-      setMessage('Running this task now in the background.');
-      startBulkPolling();
-    } catch (e) {
-      setError(e.message || 'Could not run the task.');
-    }
-  }
-
-  // Load scheduled tasks + reconnect to a running bulk job on mount.
+  // Reconnect to a bulk job that's still running (e.g. the merchant navigated
+  // back here) so the inline progress near the button reflects it.
   useEffect(() => {
     if (!shop) return;
-    loadTasks();
     (async () => {
       try {
         const res = await fetch(`${BASE_PATH}/api/bulk/status?shop=${encodeURIComponent(shop)}`, { headers: await authHeaders() });
@@ -892,27 +854,10 @@ export default function GeneratePage() {
       } catch { /* ignore */ }
     })();
     return () => stopBulkPolling();
-  }, [shop, loadTasks, startBulkPolling, stopBulkPolling]);
-
-  // Keep the scheduled-tasks list fresh so a task that fires on its own shows the
-  // live "Running" state without a manual refresh.
-  useEffect(() => {
-    if (!shop) return;
-    const id = setInterval(loadTasks, 8000);
-    return () => clearInterval(id);
-  }, [shop, loadTasks]);
-
-  // When a scheduled task starts running on its own, begin polling the bulk job so
-  // its progress (scanning / generating / saving + counts) shows live in the row.
-  const anyTaskRunning = tasks.some((t) => t.status === 'running');
-  useEffect(() => {
-    if (anyTaskRunning && !bulkPollRef.current) startBulkPolling();
-  }, [anyTaskRunning, startBulkPolling]);
+  }, [shop, startBulkPolling, stopBulkPolling]);
 
   const REC_LABEL = { once: 'Once', daily: 'Daily', weekly: 'Weekly' };
   const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const TYPE_LABEL = { product: 'Products', collection: 'Collections', article: 'Blog posts', file: 'Files' };
-  const MODE_LABEL = { ai: 'AI', ai_custom: 'AI (custom)', title: 'Title', template: 'Template', remove: 'Remove alt' };
   const bulkPct = bulkRun?.total ? Math.round((bulkRun.done / bulkRun.total) * 100) : 0;
 
   return (
@@ -1709,86 +1654,14 @@ export default function GeneratePage() {
         )}
       </section>
 
-      {/* ===== Scheduled tasks manager ===== */}
-      {tasks.length ? (
-        <section className="animate-fade-in">
-          <SectionTitle icon={Clock} desc="Your automated bulk-edit tasks. They run on the server even if this tab is closed.">
-            Scheduled bulk edits
-          </SectionTitle>
-          <div className="space-y-3">
-            {tasks.map((t) => {
-              const running = t.status === 'running';
-              // While a task runs, the live bulk job (same shop) carries its progress.
-              const prog = running && bulkRun?.total ? Math.round((bulkRun.done / bulkRun.total) * 100) : null;
-              return (
-              <div key={t.id} className={`overflow-hidden rounded-2xl border shadow-sm transition ${
-                running ? 'border-indigo-300 bg-indigo-50/40 ring-1 ring-indigo-100' : 'border-slate-200 bg-white'
-              }`}>
-                <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-800">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700">
-                        <RefreshCw className="h-3 w-3" /> {REC_LABEL[t.recurrence]}
-                      </span>
-                      <span>{(t.sources || []).map((s) => TYPE_LABEL[s] || s).join(', ')}</span>
-                      <span className="text-slate-300">·</span>
-                      <span className="text-slate-600">{MODE_LABEL[t.mode] || t.mode}</span>
-                      <span className="text-slate-300">·</span>
-                      <span className="text-slate-600">{t.scope === 'all' ? 'all images' : 'missing alt'}</span>
-                      {running ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-600 px-2.5 py-0.5 text-xs font-semibold text-white">
-                          <Loader2 className="h-3 w-3 animate-spin" /> Running
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-600">
-                      {running ? (
-                        <span className="inline-flex items-center gap-1.5 font-medium text-indigo-700">
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          {bulkRun?.phase === 'scanning' ? 'Scanning your store…'
-                            : bulkRun?.phase === 'applying' ? 'Saving alt text to Shopify…'
-                            : 'Generating alt text…'}
-                          {bulkRun?.total ? ` (${bulkRun.done}/${bulkRun.total})` : ''}
-                        </span>
-                      ) : (
-                        <span>
-                          {t.status === 'done' ? 'Completed'
-                            : t.status === 'error' ? 'Last run had an issue'
-                            : `Next run: ${new Date(t.nextRunAt).toLocaleString()}`}
-                          {t.lastSummary?.note ? ` · ${t.lastSummary.note}` : ''}
-                          {t.lastSummary?.error ? ` · ${t.lastSummary.error}` : ''}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <button onClick={() => runTaskNow(t)} disabled={bulkBusy || running}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50">
-                      {running ? <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-500" /> : <Play className="h-3.5 w-3.5 text-indigo-500" />}
-                      {running ? 'Running' : 'Run now'}
-                    </button>
-                    <button onClick={() => removeTask(t.id)}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-50">
-                      <Trash2 className="h-3.5 w-3.5" /> Delete
-                    </button>
-                  </div>
-                </div>
-                {/* Live progress bar while the task is running (indeterminate until total is known). */}
-                {running ? (
-                  <div className="h-1.5 w-full overflow-hidden bg-indigo-100">
-                    {prog != null ? (
-                      <div className="h-full rounded-r-full bg-gradient-to-r from-indigo-500 to-violet-600 transition-all duration-300" style={{ width: `${prog}%` }} />
-                    ) : (
-                      <div className="h-full w-1/3 animate-pulse rounded-full bg-gradient-to-r from-indigo-500 to-violet-600" />
-                    )}
-                  </div>
-                ) : null}
-              </div>
-              );
-            })}
-          </div>
-        </section>
-      ) : null}
+      {/* Scheduled tasks + run history now live on the dedicated "Bulk edit tasks"
+          page — starting or scheduling a bulk edit sends the merchant there. */}
+      <div className="animate-fade-in rounded-2xl border border-slate-200 bg-white px-4 py-3">
+        <a href={tasksHref} className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 transition hover:text-indigo-700">
+          <ListChecks className="h-4 w-4" /> View all bulk edit tasks &amp; their status
+          <ArrowRight className="h-4 w-4" />
+        </a>
+      </div>
 
       <Divider />
 

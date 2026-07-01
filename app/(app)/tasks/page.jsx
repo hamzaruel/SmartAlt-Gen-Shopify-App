@@ -9,6 +9,7 @@ import { useSearchParams } from 'next/navigation';
 import {
   ListChecks, Clock, RefreshCw, Info, Loader2, CheckCircle2,
   AlertTriangle, ChevronLeft, ChevronRight, X, RotateCcw, Inbox, Calendar,
+  Play, Trash2, Hourglass,
 } from 'lucide-react';
 import { BASE_PATH } from '@/lib/basePath';
 import { authHeaders } from '@/lib/sessionToken';
@@ -17,6 +18,7 @@ const PAGE_SIZE = 10;
 
 const TYPE_LABEL = { product: 'Product images', collection: 'Collection images', article: 'Blog post images', file: 'Files' };
 const MODE_LABEL = { ai: 'AI vision', ai_custom: 'AI (custom context)', title: 'Product title', template: 'Template', remove: 'Clear alt text' };
+const REC_LABEL = { once: 'One time', daily: 'Daily', weekly: 'Weekly' };
 
 // Schedule badge shown under the timestamp (mirrors Hextom's "ONE TIME"/"DAILY").
 function scheduleBadge(log) {
@@ -61,6 +63,20 @@ export default function TasksPage() {
   const [error, setError] = useState(null);
   const [detail, setDetail] = useState(null);       // log shown in the Details modal
   const [recreatingId, setRecreatingId] = useState(null);
+  const [scheduled, setScheduled] = useState([]);   // upcoming scheduled tasks (not yet run)
+  const [busyId, setBusyId] = useState(null);       // scheduled task id currently running / deleting
+
+  // Upcoming scheduled tasks (recurring next-run + one-off not-yet-fired). Their
+  // past runs already show in the history table below.
+  const loadScheduled = useCallback(async () => {
+    if (!shop) return;
+    try {
+      const res = await fetch(`${BASE_PATH}/api/schedule?shop=${encodeURIComponent(shop)}`, { headers: await authHeaders() });
+      const data = await res.json();
+      const list = Array.isArray(data.tasks) ? data.tasks : [];
+      setScheduled(list.filter((t) => t.status === 'scheduled' || t.status === 'running'));
+    } catch { /* ignore */ }
+  }, [shop]);
 
   const load = useCallback(async (opts = {}) => {
     if (!shop) return;
@@ -81,14 +97,59 @@ export default function TasksPage() {
     }
   }, [shop, page]);
 
-  useEffect(() => { load({ toPage: page }); }, [load, page]);
+  useEffect(() => { load({ toPage: page }); loadScheduled(); }, [load, page, loadScheduled]);
 
-  // Keep running rows fresh (a task fired from the schedule shows up on its own).
+  // Keep running rows + upcoming schedules fresh (a task fired from the schedule
+  // shows up on its own).
   useEffect(() => {
     if (!shop) return;
-    const id = setInterval(() => load({ silent: true, toPage: page }), 5000);
+    const id = setInterval(() => { load({ silent: true, toPage: page }); loadScheduled(); }, 5000);
     return () => clearInterval(id);
-  }, [shop, page, load]);
+  }, [shop, page, load, loadScheduled]);
+
+  // Run an upcoming scheduled task right now (server-side). It then appears in the
+  // history table as RUNNING.
+  async function runScheduledNow(task) {
+    if (!shop) return;
+    setError(null); setMessage(null); setBusyId(task.id);
+    try {
+      const res = await fetch(`${BASE_PATH}/api/bulk/start?shop=${encodeURIComponent(shop)}`, {
+        method: 'POST',
+        headers: await authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({
+          sources: task.sources, mode: task.mode, template: task.template,
+          scope: task.scope, skipExisting: task.skipExisting,
+          infoFields: task.infoFields, instructions: task.instructions,
+        }),
+      });
+      const data = await res.json();
+      if (data.error) { setError(data.error); return; }
+      setMessage('Running now in the background — watch its status below.');
+      setPage(0);
+      await Promise.all([load({ toPage: 0 }), loadScheduled()]);
+    } catch (e) {
+      setError(e.message || 'Could not run the task.');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  // Cancel an upcoming scheduled task (stops future runs).
+  async function deleteScheduled(id) {
+    if (!shop) return;
+    setError(null); setMessage(null); setBusyId(id);
+    try {
+      await fetch(`${BASE_PATH}/api/schedule?shop=${encodeURIComponent(shop)}&id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        headers: await authHeaders(),
+      });
+      await loadScheduled();
+    } catch (e) {
+      setError(e.message || 'Could not delete the task.');
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   // Re-create = re-run immediately with the same config (server-side, tab-free).
   async function recreate(log) {
@@ -147,11 +208,69 @@ export default function TasksPage() {
         </div>
       ) : null}
 
+      {/* Scheduled (upcoming) — pending tasks that haven't run yet */}
+      {scheduled.length ? (
+        <div className="overflow-hidden rounded-2xl border border-amber-200 bg-white shadow-sm">
+          <div className="flex items-center gap-2 border-b border-amber-100 bg-amber-50/60 px-5 py-3">
+            <Hourglass className="h-4 w-4 text-amber-600" />
+            <span className="text-xs font-semibold uppercase tracking-wide text-amber-700">Scheduled · upcoming</span>
+          </div>
+          <div className="divide-y divide-slate-50">
+            {scheduled.map((t) => {
+              const running = t.status === 'running';
+              const typeText = (t.sources || []).map((s) => TYPE_LABEL[s] || s).join(', ') || 'All images';
+              return (
+                <div key={t.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-bold tracking-wide text-sky-700">
+                        <RefreshCw className="h-2.5 w-2.5" /> {(REC_LABEL[t.recurrence] || t.recurrence).toUpperCase()}
+                      </span>
+                      {running ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-bold tracking-wide text-indigo-700">
+                          <Loader2 className="h-2.5 w-2.5 animate-spin" /> RUNNING
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold tracking-wide text-amber-700">
+                          <Hourglass className="h-2.5 w-2.5" /> PENDING
+                        </span>
+                      )}
+                      <span className="text-sm font-medium text-slate-800">{typeText}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-600">
+                      {running ? 'Running now…' : `Next run: ${new Date(t.nextRunAt).toLocaleString()}`}
+                      {' · '}{editingRuleText(t)}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <button
+                      onClick={() => runScheduledNow(t)}
+                      disabled={busyId === t.id || running}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      {busyId === t.id || running ? <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-500" /> : <Play className="h-3.5 w-3.5 text-indigo-500" />}
+                      {running ? 'Running' : 'Run now'}
+                    </button>
+                    <button
+                      onClick={() => deleteScheduled(t.id)}
+                      disabled={busyId === t.id}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:opacity-50"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Delete
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
       {/* Table */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
           <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Bulk edit tasks {total ? `· ${total} total` : ''}
+            Task history {total ? `· ${total} total` : ''}
           </span>
           <div className="flex items-center gap-2 text-sm">
             <span className="text-slate-500">Page {page + 1} of {totalPages}</span>
