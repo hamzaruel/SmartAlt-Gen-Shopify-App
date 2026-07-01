@@ -266,141 +266,127 @@ export default function TasksPage() {
         </div>
       ) : null}
 
-      {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Task history {total ? `· ${total} total` : ''}
-          </span>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-slate-500">Page {page + 1} of {totalPages}</span>
-            <button
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={page === 0}
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-40"
-            >
-              <ChevronLeft className="h-3.5 w-3.5" /> Prev
-            </button>
-            <button
-              onClick={() => setPage((p) => (p + 1 < totalPages ? p + 1 : p))}
-              disabled={page + 1 >= totalPages}
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-40"
-            >
-              Next <ChevronRight className="h-3.5 w-3.5" />
-            </button>
-          </div>
+      {/* History header + pagination */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Task history {total ? `· ${total} total` : ''}
+        </span>
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-slate-500">Page {page + 1} of {totalPages}</span>
+          <button
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-40"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" /> Prev
+          </button>
+          <button
+            onClick={() => setPage((p) => (p + 1 < totalPages ? p + 1 : p))}
+            disabled={page + 1 >= totalPages}
+            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-40"
+          >
+            Next <ChevronRight className="h-3.5 w-3.5" />
+          </button>
         </div>
-
-        {loading ? (
-          <div className="flex items-center justify-center gap-2 py-16 text-sm text-slate-500">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading tasks…
-          </div>
-        ) : logs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
-            <Inbox className="h-8 w-8 text-slate-300" />
-            <p className="text-sm font-medium text-slate-700">No bulk edit tasks yet</p>
-            <p className="max-w-sm text-sm text-slate-500">
-              Run or schedule a bulk edit from <span className="font-semibold text-indigo-600">Generate &amp; embed</span> and it will show up here with its status.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[860px] border-collapse text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-100 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  <th className="px-5 py-3">Created at</th>
-                  <th className="px-5 py-3">Status</th>
-                  <th className="px-5 py-3">Edited items</th>
-                  <th className="px-5 py-3">Filter conditions</th>
-                  <th className="px-5 py-3">Editing rules</th>
-                  <th className="px-5 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map((log) => {
-                  const badge = scheduleBadge(log);
-                  const chip = statusChip(log.status);
-                  const c = log.config || {};
-                  const typeText = (c.sources || []).map((s) => TYPE_LABEL[s] || s).join(', ') || 'All images';
-                  return (
-                    <tr key={log.id} className="border-b border-slate-50 align-top last:border-0 hover:bg-slate-50/60">
-                      {/* Created at + schedule badge */}
-                      <td className="px-5 py-4">
-                        <div className="font-medium text-slate-800">{new Date(log.createdAt).toLocaleString()}</div>
-                        <span className={`mt-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide ${badge.cls}`}>
-                          {log.trigger === 'schedule' ? <RefreshCw className="h-2.5 w-2.5" /> : <Calendar className="h-2.5 w-2.5" />}
-                          {badge.label}
-                        </span>
-                      </td>
-
-                      {/* Status */}
-                      <td className="px-5 py-4">
-                        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold tracking-wide ${chip.cls}`}>
-                          <chip.Icon className={`h-3.5 w-3.5 ${chip.spin ? 'animate-spin' : ''}`} /> {chip.label}
-                        </span>
-                      </td>
-
-                      {/* Edited items */}
-                      <td className="px-5 py-4">
-                        <div className="inline-flex rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
-                          Matched {log.matched} image{log.matched === 1 ? '' : 's'}
-                        </div>
-                        <div className="mt-1.5">
-                          {log.status === 'running' ? (
-                            <span className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600">
-                              <Loader2 className="h-3 w-3 animate-spin" /> In progress…
-                            </span>
-                          ) : (
-                            <span className="inline-flex rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
-                              Edited {log.edited} image{log.edited === 1 ? '' : 's'}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Filter conditions */}
-                      <td className="px-5 py-4 text-slate-600">
-                        <div><span className="font-medium text-slate-700">Image type:</span> {typeText}</div>
-                        <div className="mt-1">
-                          <span className="font-medium text-slate-700">Scope:</span>{' '}
-                          {c.scope === 'all' ? 'All matching images' : 'Only images missing alt text'}
-                        </div>
-                      </td>
-
-                      {/* Editing rules */}
-                      <td className="px-5 py-4 text-slate-600">
-                        <div className="max-w-[240px]">{editingRuleText(c)}</div>
-                      </td>
-
-                      {/* Actions */}
-                      <td className="px-5 py-4">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => setDetail(log)}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
-                          >
-                            <Info className="h-3.5 w-3.5" /> Details
-                          </button>
-                          <button
-                            onClick={() => recreate(log)}
-                            disabled={recreatingId === log.id || c.mode == null}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50"
-                          >
-                            {recreatingId === log.id
-                              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              : <RotateCcw className="h-3.5 w-3.5" />}
-                            Re-create
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white py-16 text-sm text-slate-500 shadow-sm">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading tasks…
+        </div>
+      ) : logs.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white py-16 text-center shadow-sm">
+          <Inbox className="h-8 w-8 text-slate-300" />
+          <p className="text-sm font-medium text-slate-700">No bulk edit tasks yet</p>
+          <p className="max-w-sm text-sm text-slate-500">
+            Run or schedule a bulk edit from <span className="font-semibold text-indigo-600">Generate &amp; embed</span> and it will show up here with its status.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {logs.map((log) => {
+            const badge = scheduleBadge(log);
+            const chip = statusChip(log.status);
+            const c = log.config || {};
+            const typeText = (c.sources || []).map((s) => TYPE_LABEL[s] || s).join(', ') || 'All images';
+            return (
+              <div key={log.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-300 hover:shadow-md">
+                {/* Header: timestamp + badges  ·  actions */}
+                <div className="flex flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-semibold text-slate-900">{new Date(log.createdAt).toLocaleString()}</span>
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide ${badge.cls}`}>
+                      {log.trigger === 'schedule' ? <RefreshCw className="h-2.5 w-2.5" /> : <Calendar className="h-2.5 w-2.5" />}
+                      {badge.label}
+                    </span>
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-wide ${chip.cls}`}>
+                      <chip.Icon className={`h-3 w-3 ${chip.spin ? 'animate-spin' : ''}`} /> {chip.label}
+                    </span>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <button
+                      onClick={() => setDetail(log)}
+                      className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-200 px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                    >
+                      <Info className="h-3.5 w-3.5" /> Details
+                    </button>
+                    <button
+                      onClick={() => recreate(log)}
+                      disabled={recreatingId === log.id || c.mode == null}
+                      className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50"
+                    >
+                      {recreatingId === log.id
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <RotateCcw className="h-3.5 w-3.5" />}
+                      Re-create
+                    </button>
+                  </div>
+                </div>
+
+                {/* Body: three labeled fields */}
+                <div className="mt-4 grid gap-5 sm:grid-cols-3">
+                  {/* Edited items */}
+                  <div>
+                    <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Edited items</div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
+                        Matched {log.matched}
+                      </span>
+                      {log.status === 'running' ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600">
+                          <Loader2 className="h-3 w-3 animate-spin" /> In progress…
+                        </span>
+                      ) : (
+                        <span className="inline-flex rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
+                          Edited {log.edited}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Filter conditions */}
+                  <div>
+                    <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Filter conditions</div>
+                    <div className="text-sm text-slate-600">
+                      <div><span className="font-medium text-slate-700">Type:</span> {typeText}</div>
+                      <div className="mt-0.5">
+                        <span className="font-medium text-slate-700">Scope:</span>{' '}
+                        {c.scope === 'all' ? 'All matching images' : 'Only missing alt text'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Editing rules */}
+                  <div>
+                    <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">Editing rules</div>
+                    <div className="text-sm text-slate-600">{editingRuleText(c)}</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Details modal */}
       {detail ? (
