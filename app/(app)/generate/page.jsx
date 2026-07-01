@@ -202,7 +202,11 @@ export default function GeneratePage() {
   const billingQs = `?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}`;
   // After starting/scheduling a bulk edit we send the merchant to the Tasks page,
   // where the run shows live status (pending → running → finished).
+  //  - tasksHref: for raw <a> tags — must include BASE_PATH.
+  //  - tasksPath: for router.push() — Next prepends BASE_PATH itself, so DON'T
+  //    include it here or the path doubles up (/smart-alt-gen/smart-alt-gen/…).
   const tasksHref = `${BASE_PATH}/tasks${billingQs}`;
+  const tasksPath = `/tasks${billingQs}`;
 
   const [allImages, setAllImages] = useState([]);
   const [selected, setSelected] = useState(null); // no type pre-selected
@@ -793,7 +797,7 @@ export default function GeneratePage() {
       const data = await res.json();
       if (data.error) { setError(data.error); if (/limit|upgrade|plan/i.test(data.error)) setUpgrade(true); return; }
       // Hand off to the Tasks page — the run shows there with live status.
-      router.push(tasksHref);
+      router.push(tasksPath);
     } catch (e) {
       setError(e.message || 'Could not start the bulk edit.');
     }
@@ -836,7 +840,7 @@ export default function GeneratePage() {
       if (data.error) { setError(data.error); return; }
       setShowSchedule(false);
       // Show the new scheduled task (and its future runs) on the Tasks page.
-      router.push(tasksHref);
+      router.push(tasksPath);
     } catch (e) {
       setError(e.message || 'Could not schedule the task.');
     }
