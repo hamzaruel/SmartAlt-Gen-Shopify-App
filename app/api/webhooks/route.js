@@ -3,6 +3,7 @@ import { deleteShop } from "@/lib/db";
 import { clearSubscription } from "@/lib/billing/usage";
 import { deleteScanRow } from "@/lib/scanDb";
 import { deleteTasksForShop } from "@/lib/scheduledTasks";
+import { deleteTaskLogsForShop } from "@/lib/bulkTaskLog";
 import { deleteGenerationData } from "@/lib/generationJob";
 
 export const dynamic = "force-dynamic";
@@ -55,6 +56,7 @@ export async function POST(req) {
       await clearSubscription(shop);
       await deleteScanRow(shop);
       await deleteTasksForShop(shop);
+      await deleteTaskLogsForShop(shop);
       await deleteGenerationData(shop);
       console.log("✅ shop/redact — erased all data for", shop);
     } catch (e) {

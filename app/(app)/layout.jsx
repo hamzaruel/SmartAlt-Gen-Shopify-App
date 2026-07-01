@@ -40,6 +40,7 @@ export default function AppLayout({ children }) {
         </s-link>
         <s-link href={`${BASE_PATH}/images${qs}`}>Alt text report</s-link>
         <s-link href={`${BASE_PATH}/generate${qs}`}>Generate &amp; embed</s-link>
+        <s-link href={`${BASE_PATH}/tasks${qs}`}>Bulk edit tasks</s-link>
         <s-link href={`${BASE_PATH}/settings${qs}`}>Preferences</s-link>
         <s-link href={`${BASE_PATH}/billing${qs}`}>Pricing plans</s-link>
         <s-link href={`${BASE_PATH}/help${qs}`}>Help center</s-link>

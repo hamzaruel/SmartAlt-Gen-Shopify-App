@@ -3,6 +3,7 @@ import { deleteShop } from '@/lib/db';
 import { clearSubscription } from '@/lib/billing/usage';
 import { deleteScanRow } from '@/lib/scanDb';
 import { deleteTasksForShop } from '@/lib/scheduledTasks';
+import { deleteTaskLogsForShop } from '@/lib/bulkTaskLog';
 import { deleteGenerationData } from '@/lib/generationJob';
 import crypto from 'crypto';
 
@@ -35,6 +36,7 @@ export async function POST(request) {
       await clearSubscription(shop); // drop back to Free; Shopify cancels the charge
       await deleteScanRow(shop); // remove persisted scan data
       await deleteTasksForShop(shop); // remove scheduled bulk-edit tasks
+      await deleteTaskLogsForShop(shop); // remove bulk-edit run history
       await deleteGenerationData(shop); // remove queued/finished generation rows
     }
     console.log('✅ app/uninstalled — cleaned up', shop);
