@@ -260,13 +260,43 @@ export default function ImagesPage() {
             </p>
           </div>
 
-          {/* section illustration (soft float, like the dashboard hero) */}
-          <img
-            src={`${BASE_PATH}/audit-illustration-v2.png`}
-            alt=""
-            aria-hidden="true"
-            className="animate-float hidden w-56 shrink-0 lg:block xl:w-64"
-          />
+          {/* section concept: image rows with alt text statuses (Described / Needs work / Missing) */}
+          <div className="hidden w-72 shrink-0 lg:block xl:w-80 lg:[transform:perspective(1200px)_rotateY(-9deg)_rotateX(3deg)]" aria-hidden="true">
+            <div className="animate-float relative">
+              <div className="pointer-events-none absolute -inset-5 rounded-[2rem] bg-gradient-to-br from-indigo-400/15 to-violet-400/15 blur-2xl" />
+              <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-3.5 shadow-xl shadow-indigo-500/20">
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-slate-200" />
+                  <span className="h-2 w-2 rounded-full bg-slate-200" />
+                  <span className="h-2 w-2 rounded-full bg-slate-200" />
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Alt text</span>
+              </div>
+              <div className="space-y-2.5">
+                {[
+                  { bar: 'w-3/4', label: 'Described', cls: 'bg-emerald-50 text-emerald-600 ring-emerald-100', Icon: CheckCircle2 },
+                  { bar: 'w-1/2', label: 'Needs work', cls: 'bg-amber-50 text-amber-600 ring-amber-100', Icon: AlertTriangle },
+                  { bar: 'w-2/3', label: 'Missing', cls: 'bg-rose-50 text-rose-600 ring-rose-100', Icon: ImageOff },
+                ].map((r, i) => (
+                  <div
+                    key={r.label}
+                    className="animate-card-in flex items-center gap-2.5 rounded-lg border border-slate-100 bg-slate-50/70 p-2"
+                    style={{ animationDelay: `${i * 150}ms` }}
+                  >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-indigo-100 to-violet-100 text-indigo-500">
+                      <ImagesIcon className="h-4 w-4" />
+                    </span>
+                    <span className={`h-2 flex-1 rounded-full bg-slate-200 ${r.bar}`} />
+                    <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold ring-1 ring-inset ${r.cls}`}>
+                      <r.Icon className="h-2.5 w-2.5" /> {r.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            </div>
+          </div>
         </div>
       </div>
 

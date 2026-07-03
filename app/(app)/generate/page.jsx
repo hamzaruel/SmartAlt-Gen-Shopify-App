@@ -26,6 +26,7 @@ import {
   ListChecks,
   ArrowRight,
   Sparkles,
+  Image as ImagesIcon,
 } from 'lucide-react';
 import { loadScan, patchImages, hydrateScan } from '@/lib/scanStore';
 import { authHeaders } from '@/lib/sessionToken';
@@ -117,14 +118,13 @@ function applyTemplate(tpl, img) {
 function SectionTitle({ icon: Icon, children, desc, step }) {
   return (
     <div className="mb-4 flex items-start gap-3.5">
-      {/* Premium gradient badge: shows the step number for the main flow,
+      {/* Soft badge: shows the step number for the main flow,
           or the section icon for the advanced/results sections. */}
-      <span className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-violet-500/25 ring-1 ring-inset ring-white/25">
-        <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-white/20" />
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-50 to-violet-50 text-indigo-600 ring-1 ring-inset ring-indigo-100">
         {step != null ? (
-          <span className="relative text-base font-bold tabular-nums">{step}</span>
+          <span className="text-base font-bold tabular-nums">{step}</span>
         ) : (
-          <Icon className="relative h-5 w-5" strokeWidth={1.75} />
+          <Icon className="h-5 w-5" strokeWidth={1.75} />
         )}
       </span>
       <div className="pt-0.5">
@@ -891,13 +891,55 @@ export default function GeneratePage() {
             </p>
           </div>
 
-          {/* section illustration (soft float, matches the Image audit hero) */}
-          <img
-            src={`${BASE_PATH}/studio-illustration.png`}
-            alt=""
-            aria-hidden="true"
-            className="animate-float -my-2 hidden w-60 shrink-0 lg:block xl:w-72"
-          />
+          {/* section concept: AI writing alt text, then embedding to Shopify */}
+          <div className="hidden w-72 shrink-0 lg:block xl:w-80 lg:[transform:perspective(1200px)_rotateY(-9deg)_rotateX(3deg)]" aria-hidden="true">
+            <div className="animate-float relative">
+              <div className="pointer-events-none absolute -inset-5 rounded-[2rem] bg-gradient-to-br from-indigo-400/15 to-violet-400/15 blur-2xl" />
+              <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-3.5 shadow-xl shadow-indigo-500/20">
+                {/* top bar */}
+                <div className="mb-3 flex items-center justify-between">
+                  <div className="flex gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-slate-200" />
+                    <span className="h-2 w-2 rounded-full bg-slate-200" />
+                    <span className="h-2 w-2 rounded-full bg-slate-200" />
+                  </div>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-indigo-500 to-violet-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                    <Wand2 className="h-2.5 w-2.5" /> AI
+                  </span>
+                </div>
+
+                {/* rows: image + alt text being written */}
+                <div className="space-y-2.5">
+                  {[0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className="animate-card-in flex items-center gap-2.5 rounded-lg border border-slate-100 bg-slate-50/70 p-2"
+                      style={{ animationDelay: `${i * 150}ms` }}
+                    >
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-indigo-100 to-violet-100 text-indigo-500">
+                        <ImagesIcon className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0 flex-1 space-y-1.5">
+                        <span className={`block h-2 rounded-full bg-gradient-to-r from-indigo-400 to-violet-400 ${['w-3/4', 'w-5/6', 'w-2/3'][i]}`} />
+                        <span className="block h-2 w-1/2 rounded-full bg-slate-200" />
+                      </div>
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                    </div>
+                  ))}
+                </div>
+
+                {/* embed action bar */}
+                <div className="mt-3 flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 py-2 text-xs font-bold text-white shadow-sm">
+                  <UploadCloud className="h-3.5 w-3.5" /> Embed to Shopify
+                </div>
+              </div>
+
+              {/* floating sparkle badge */}
+              <span className="absolute -left-4 top-6 flex h-10 w-10 items-center justify-center rounded-2xl bg-white shadow-xl ring-1 ring-slate-100">
+                <Sparkles className="h-5 w-5 text-violet-500" />
+              </span>
+            </div>
+          </div>
         </div>
       </header>
 

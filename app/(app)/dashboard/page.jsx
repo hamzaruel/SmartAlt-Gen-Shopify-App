@@ -53,10 +53,10 @@ function Divider() {
 }
 
 const ACTIVITY_META = {
-  scan:     { icon: ScanLine,    chip: 'bg-sky-100 text-sky-600',         grad: 'from-sky-500 to-sky-600 shadow-sky-500/30',         tag: 'Scan',     text: (a) => `Scanned your store, ${(a.count || 0).toLocaleString()} image${a.count === 1 ? '' : 's'} found` },
-  generate: { icon: Wand2,       chip: 'bg-violet-100 text-violet-600',   grad: 'from-violet-500 to-violet-600 shadow-violet-500/30',   tag: 'Generate', text: (a) => `Generated alt text for ${a.count} image${a.count === 1 ? '' : 's'}` },
-  embed:    { icon: UploadCloud, chip: 'bg-emerald-100 text-emerald-600', grad: 'from-emerald-500 to-emerald-600 shadow-emerald-500/30', tag: 'Embed',    text: (a) => `Saved alt text to ${a.count} image${a.count === 1 ? '' : 's'} in Shopify` },
-  clear:    { icon: Trash2,      chip: 'bg-rose-100 text-rose-600',       grad: 'from-rose-500 to-rose-600 shadow-rose-500/30',       tag: 'Clear',    text: (a) => `Cleared alt text from ${a.count} image${a.count === 1 ? '' : 's'}` },
+  scan:     { icon: ScanLine,    chip: 'bg-sky-100 text-sky-600',         soft: 'bg-sky-50 text-sky-600 ring-sky-100',             tag: 'Scan',     text: (a) => `Scanned your store, ${(a.count || 0).toLocaleString()} image${a.count === 1 ? '' : 's'} found` },
+  generate: { icon: Wand2,       chip: 'bg-violet-100 text-violet-600',   soft: 'bg-violet-50 text-violet-600 ring-violet-100',     tag: 'Generate', text: (a) => `Generated alt text for ${a.count} image${a.count === 1 ? '' : 's'}` },
+  embed:    { icon: UploadCloud, chip: 'bg-emerald-100 text-emerald-600', soft: 'bg-emerald-50 text-emerald-600 ring-emerald-100', tag: 'Embed',    text: (a) => `Saved alt text to ${a.count} image${a.count === 1 ? '' : 's'} in Shopify` },
+  clear:    { icon: Trash2,      chip: 'bg-rose-100 text-rose-600',       soft: 'bg-rose-50 text-rose-600 ring-rose-100',           tag: 'Clear',    text: (a) => `Cleared alt text from ${a.count} image${a.count === 1 ? '' : 's'}` },
 };
 
 const easeOutCubic = (x) => 1 - Math.pow(1 - x, 3);
@@ -233,10 +233,8 @@ export default function DashboardPage() {
               Every image<br />
               <span className="whitespace-nowrap bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">described properly</span>
             </h1>
-            <p className="mt-4 max-w-md text-base leading-relaxed text-slate-600">
-              <span className="font-semibold text-indigo-600">SEO-friendly alt text</span> for{' '}
-              <span className="font-semibold text-violet-600">every image</span> in{' '}
-              <span className="font-semibold text-indigo-600">one click</span>, so your store ranks higher and stays accessible.
+            <p className="mt-4 max-w-md text-base font-medium leading-relaxed text-slate-700">
+              SEO-friendly alt text for every image in one click, so your store ranks higher and stays accessible.
             </p>
 
             {/* prompt + 3D push button */}
@@ -266,15 +264,67 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* RIGHT: dashboard preview illustration (tilt on the wrapper, gentle
-              float on the image — kept separate so the transforms don't fight) */}
-          <div className="hidden justify-center lg:flex lg:justify-end" aria-hidden="true">
-            <div className="[transform:perspective(1300px)_rotateY(-11deg)_rotateX(4deg)]">
-              <img
-                src={`${BASE_PATH}/hero-dashboard.png`}
-                alt=""
-                className="animate-float w-full max-w-md xl:max-w-lg rounded-xl border border-slate-200 shadow-2xl shadow-indigo-500/25"
-              />
+          {/* RIGHT: code-drawn "images getting described" concept (tilt on the wrapper,
+              gentle float on the inner card so the transforms don't fight) */}
+          <div className="mt-2 flex justify-center lg:mt-0 lg:justify-end" aria-hidden="true">
+            <div className="lg:[transform:perspective(1300px)_rotateY(-11deg)_rotateX(4deg)]">
+              <div className="animate-float relative w-full max-w-sm sm:max-w-md lg:w-[30rem] xl:w-[34rem]">
+                {/* soft brand glow behind the card */}
+                <div className="pointer-events-none absolute -inset-8 rounded-[2.5rem] bg-gradient-to-br from-indigo-400/20 via-violet-400/15 to-fuchsia-300/10 blur-3xl" />
+
+                {/* browser window mockup of the storefront */}
+                <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-indigo-500/25">
+                  {/* browser top bar with URL */}
+                  <div className="flex items-center gap-3 border-b border-slate-100 bg-slate-50/80 px-4 py-3">
+                    <div className="flex gap-1.5">
+                      <span className="h-2.5 w-2.5 rounded-full bg-rose-300" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-amber-300" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
+                    </div>
+                    <div className="flex flex-1 items-center gap-1.5 rounded-md bg-white px-3 py-1 text-xs font-medium text-slate-400 ring-1 ring-slate-200">
+                      <span className="h-2 w-2 rounded-full bg-emerald-400" /> yourstore.com
+                    </div>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-indigo-500 to-violet-600 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">
+                      <Wand2 className="h-3 w-3" /> AI
+                    </span>
+                  </div>
+
+                  {/* storefront images, each now labelled "Alt text added" */}
+                  <div className="space-y-3 p-4">
+                    {[0, 1, 2].map((i) => (
+                      <div
+                        key={i}
+                        className="animate-card-in flex items-center gap-3.5 rounded-xl border border-slate-100 bg-slate-50/70 p-3"
+                        style={{ animationDelay: `${i * 160}ms` }}
+                      >
+                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-100 to-violet-100 text-indigo-500">
+                          <ImagesIcon className="h-5 w-5" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <span className={`block h-2.5 rounded-full bg-gradient-to-r from-indigo-400 to-violet-400 ${['w-4/5', 'w-3/5', 'w-3/4'][i]}`} />
+                          <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 ring-1 ring-inset ring-emerald-100">
+                            <CheckCircle2 className="h-3 w-3" /> Alt text added
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* floating sparkle badge */}
+                <span className="animate-float absolute -left-5 top-10 hidden h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-xl ring-1 ring-slate-100 sm:flex" style={{ animationDelay: '400ms' }}>
+                  <Sparkles className="h-5 w-5 text-violet-500" />
+                </span>
+
+                {/* floating coverage ring badge */}
+                <span className="absolute -right-4 -bottom-4 hidden h-16 w-16 items-center justify-center rounded-full bg-white shadow-xl ring-1 ring-slate-100 sm:flex">
+                  <svg viewBox="0 0 36 36" className="h-12 w-12 -rotate-90">
+                    <circle cx="18" cy="18" r="15" fill="none" stroke="#e2e8f0" strokeWidth="4" />
+                    <circle cx="18" cy="18" r="15" fill="none" stroke="#7c3aed" strokeWidth="4" strokeLinecap="round" strokeDasharray="72 94" />
+                  </svg>
+                  <span className="absolute text-xs font-bold text-violet-700">92%</span>
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -441,31 +491,29 @@ export default function DashboardPage() {
                   </span>
                 </div>
                 {activity.length ? (
-                  <ol className="relative mt-5">
-                    {activity.slice(0, 5).map((a, i, arr) => {
+                  <ul className="mt-4 space-y-2.5">
+                    {activity.slice(0, 5).map((a) => {
                       const meta = ACTIVITY_META[a.type] || ACTIVITY_META.scan;
                       const Icon = meta.icon;
-                      const last = i === arr.length - 1;
                       return (
-                        <li key={a.ts} className="group relative flex gap-4 rounded-xl px-2 py-2.5 transition-colors duration-200 hover:bg-white">
-                          {/* timeline connector */}
-                          {!last ? <span className="absolute bottom-1 left-[26px] top-12 w-px bg-gradient-to-b from-slate-200 to-transparent" /> : null}
-                          {/* gradient dot */}
-                          <span className={`relative z-10 flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br text-white shadow-md ring-4 ring-slate-50 transition-all group-hover:ring-white ${meta.grad}`}>
-                            <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-white/20" />
-                            <Icon className="relative h-4 w-4" strokeWidth={1.85} />
+                        <li
+                          key={a.ts}
+                          className="flex items-center gap-3.5 rounded-xl border border-slate-100 bg-white p-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                        >
+                          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset ${meta.soft}`}>
+                            <Icon className="h-5 w-5" strokeWidth={1.75} />
                           </span>
-                          <div className="flex min-w-0 flex-1 items-start justify-between gap-2 pt-0.5">
-                            <div className="min-w-0">
-                              <p className="text-sm font-semibold leading-snug text-slate-800">{meta.text(a)}</p>
-                              <span className={`mt-1 inline-block rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${meta.chip}`}>{meta.tag}</span>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold leading-snug text-slate-800">{meta.text(a)}</p>
+                            <div className="mt-1 flex items-center gap-2">
+                              <span className={`inline-block rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${meta.chip}`}>{meta.tag}</span>
+                              <span className="text-xs font-medium text-slate-400">{relativeTime(a.ts)}</span>
                             </div>
-                            <span className="shrink-0 whitespace-nowrap text-xs font-medium text-slate-400">{relativeTime(a.ts)}</span>
                           </div>
                         </li>
                       );
                     })}
-                  </ol>
+                  </ul>
                 ) : (
                   <div className="flex flex-1 flex-col items-center justify-center py-10 text-center">
                     <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white ring-1 ring-slate-100">
@@ -505,12 +553,12 @@ export default function DashboardPage() {
           <p className="mt-1 text-sm text-slate-500">From scan to embed in four simple steps</p>
         </div>
         <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
-          {STEPS.map(({ title, text, icon: Icon, grad }) => (
+          {STEPS.map(({ title, text, icon: Icon }, i) => (
             <div key={title} className="group">
-              {/* 3D gradient icon chip */}
-              <span className={`relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br text-white shadow-lg ring-1 ring-inset ring-white/25 transition-transform duration-300 group-hover:-translate-y-1 ${grad}`}>
-                <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-white/20" />
-                <Icon className="relative h-6 w-6" strokeWidth={1.75} />
+              {/* soft, uniform brand-tinted icon chip with a subtle step number */}
+              <span className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-50 to-violet-50 text-indigo-600 ring-1 ring-inset ring-indigo-100 transition-transform duration-300 group-hover:-translate-y-1">
+                <Icon className="h-6 w-6" strokeWidth={1.75} />
+                <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-white text-[11px] font-bold text-indigo-600 shadow-sm ring-1 ring-slate-100">{i + 1}</span>
               </span>
               <h3 className="mt-4 text-base font-semibold text-slate-900">{title}</h3>
               <p className="mt-1.5 text-sm leading-relaxed text-slate-500">{text}</p>
@@ -521,9 +569,8 @@ export default function DashboardPage() {
 
       {/* ===== Why alt text matters tip ===== */}
       <div className="flex items-start gap-4 rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-5 shadow-sm sm:p-6">
-        <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-violet-500/30 ring-1 ring-inset ring-white/25">
-          <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-white/20" />
-          <Info className="relative h-5 w-5" strokeWidth={1.75} />
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-50 to-violet-50 text-indigo-600 ring-1 ring-inset ring-indigo-100">
+          <Info className="h-5 w-5" strokeWidth={1.75} />
         </span>
         <div>
           <h3 className="text-sm font-semibold text-slate-900">Why alt text matters</h3>
