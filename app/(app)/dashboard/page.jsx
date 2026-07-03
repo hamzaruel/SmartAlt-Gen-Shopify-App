@@ -268,7 +268,7 @@ export default function DashboardPage() {
 
           {/* RIGHT: dashboard preview illustration (tilt on the wrapper, gentle
               float on the image — kept separate so the transforms don't fight) */}
-          <div className="hidden justify-center lg:flex lg:justify-end" aria-hidden="true">
+          <div className="flex justify-center lg:justify-end" aria-hidden="true">
             <div className="[transform:perspective(1300px)_rotateY(-11deg)_rotateX(4deg)]">
               <img
                 src={`${BASE_PATH}/hero-dashboard.png`}
