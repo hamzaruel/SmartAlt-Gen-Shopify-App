@@ -25,6 +25,7 @@ import {
   RefreshCw,
   ListChecks,
   ArrowRight,
+  Sparkles,
 } from 'lucide-react';
 import { loadScan, patchImages, hydrateScan } from '@/lib/scanStore';
 import { authHeaders } from '@/lib/sessionToken';
