@@ -255,11 +255,8 @@ export default function ImagesPage() {
               </span>
               <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">All store images</h1>
             </div>
-            <p className="mt-2.5 max-w-xl text-base leading-relaxed text-slate-600">
-              Browse <span className="font-semibold text-violet-600">every image</span> in your store and check its{' '}
-              <span className="font-semibold text-indigo-600">alt text status</span>. Use the{' '}
-              <span className="font-semibold text-violet-600">filters</span> to find exactly{' '}
-              <span className="font-semibold text-indigo-600">what needs fixing</span>.
+            <p className="mt-2.5 max-w-xl text-balance text-base font-medium leading-relaxed text-slate-700">
+              See every image in your store and exactly which ones need alt text.
             </p>
           </div>
 
@@ -268,7 +265,7 @@ export default function ImagesPage() {
             src={`${BASE_PATH}/audit-illustration-v2.png`}
             alt=""
             aria-hidden="true"
-            className="animate-float hidden w-80 shrink-0 lg:block xl:w-96"
+            className="animate-float hidden w-56 shrink-0 lg:block xl:w-64"
           />
         </div>
       </div>

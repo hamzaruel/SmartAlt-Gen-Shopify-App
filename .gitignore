@@ -27,3 +27,7 @@ shopify.app.toml.accessibility-live-BACKUP
 
 # personal worklog / progress diary — NEVER commit
 WORKLOG.md
+
+# legal pages kept local only (not part of the shared repo)
+PRIVACY_POLICY.md
+TERMS_OF_SERVICE.md

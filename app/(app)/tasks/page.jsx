@@ -1,6 +1,6 @@
 'use client';
 
-// "Bulk edit tasks" — Hextom-style history of every bulk-edit run (both the
+// "Bulk edit tasks": a history of every bulk-edit run (both the
 // immediate "Start Bulk Editing" button and scheduled tasks). Each run is one
 // row: when it ran, its schedule badge, status, matched / edited counts, the
 // filter + editing rules it used, plus Details and Re-create.
@@ -45,9 +45,9 @@ function editingRuleText(config = {}) {
       const bits = [];
       if (Array.isArray(config.infoFields) && config.infoFields.length) bits.push(`using ${config.infoFields.join(', ')}`);
       if (config.instructions) bits.push(`“${config.instructions}”`);
-      return `Generate alt text with AI + custom context${bits.length ? ' — ' + bits.join('; ') : ''}`;
+      return `Generate alt text with AI + custom context${bits.length ? ': ' + bits.join('; ') : ''}`;
     }
-    default: return MODE_LABEL[config.mode] || config.mode || '—';
+    default: return MODE_LABEL[config.mode] || config.mode || 'Bulk edit';
   }
 }
 
@@ -91,7 +91,7 @@ export default function TasksPage() {
       setLogs(Array.isArray(data.logs) ? data.logs : []);
       setTotal(Number(data.total) || 0);
     } catch {
-      /* transient — keep what we have */
+      /* transient, keep what we have */
     } finally {
       if (!silent) setLoading(false);
     }
@@ -124,7 +124,7 @@ export default function TasksPage() {
       });
       const data = await res.json();
       if (data.error) { setError(data.error); return; }
-      setMessage('Running now in the background — watch its status below.');
+      setMessage('Running now in the background. Watch its status below.');
       setPage(0);
       await Promise.all([load({ toPage: 0 }), loadScheduled()]);
     } catch (e) {
@@ -172,7 +172,7 @@ export default function TasksPage() {
       });
       const data = await res.json();
       if (data.error) { setError(data.error); return; }
-      setMessage('Re-created this task. It’s running in the background — a new row will appear here.');
+      setMessage('Re-created this task. It’s running in the background, and a new row will appear here.');
       setPage(0);
       await load({ toPage: 0 });
     } catch (e) {
@@ -186,16 +186,29 @@ export default function TasksPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-indigo-600">
-          <ListChecks className="h-4 w-4" /> Bulk edit tasks
+      {/* Premium header */}
+      <header className="animate-card-in relative overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-br from-violet-50 via-white to-indigo-50/60 p-6 shadow-sm sm:p-7">
+        <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-violet-200/30 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 left-1/4 h-52 w-52 rounded-full bg-fuchsia-200/25 blur-3xl" />
+        <div className="relative">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-violet-600 shadow-sm ring-1 ring-violet-100">
+            <ListChecks className="h-3.5 w-3.5" /> Bulk edit tasks
+          </span>
+          <div className="mt-3 flex items-center gap-3">
+            <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-violet-500/30 ring-1 ring-inset ring-white/25">
+              <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-white/20" />
+              <ListChecks className="relative h-5 w-5" strokeWidth={1.75} />
+            </span>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+              Task{' '}
+              <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">history</span>
+            </h1>
+          </div>
+          <p className="mt-2.5 max-w-xl text-base leading-relaxed text-slate-600">
+            Every bulk edit you have run, manual or scheduled, with what it matched, what it changed, and the rules it used.
+          </p>
         </div>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">Task history</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Every bulk edit you’ve run — manual or scheduled — with what it matched, what it changed, and the rules it used.
-        </p>
-      </div>
+      </header>
 
       {message ? (
         <div className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
@@ -208,7 +221,7 @@ export default function TasksPage() {
         </div>
       ) : null}
 
-      {/* Scheduled (upcoming) — pending tasks that haven't run yet */}
+      {/* Scheduled (upcoming): pending tasks that haven't run yet */}
       {scheduled.length ? (
         <div className="overflow-hidden rounded-2xl border border-amber-200 bg-white shadow-sm">
           <div className="flex items-center gap-2 border-b border-amber-100 bg-amber-50/60 px-5 py-3">
