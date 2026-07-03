@@ -886,12 +886,8 @@ export default function GeneratePage() {
                 <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">alt text</span>
               </h1>
             </div>
-            <p className="mt-2.5 max-w-xl text-base leading-relaxed text-slate-600">
-              Pick a type of image, choose how to write the text with{' '}
-              <span className="font-semibold text-violet-600">AI</span> or a{' '}
-              <span className="font-semibold text-violet-600">template</span>, then{' '}
-              <span className="font-semibold text-indigo-600">generate</span> it and{' '}
-              <span className="font-semibold text-indigo-600">save it straight to Shopify</span>.
+            <p className="mt-2.5 max-w-xl text-balance text-base font-medium leading-relaxed text-slate-700">
+              Pick a type of image, choose how to write the text with AI or a template, then generate it and save it straight to Shopify.
             </p>
           </div>
 
@@ -900,7 +896,7 @@ export default function GeneratePage() {
             src={`${BASE_PATH}/studio-illustration.png`}
             alt=""
             aria-hidden="true"
-            className="animate-float -my-2 hidden w-96 shrink-0 lg:block xl:w-[28rem]"
+            className="animate-float -my-2 hidden w-60 shrink-0 lg:block xl:w-72"
           />
         </div>
       </header>
