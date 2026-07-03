@@ -264,67 +264,15 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* RIGHT: code-drawn "images getting described" concept (tilt on the wrapper,
-              gentle float on the inner card so the transforms don't fight) */}
-          <div className="mt-2 flex justify-center lg:mt-0 lg:justify-end" aria-hidden="true">
-            <div className="lg:[transform:perspective(1300px)_rotateY(-11deg)_rotateX(4deg)]">
-              <div className="animate-float relative w-full max-w-sm sm:max-w-md lg:w-[30rem] xl:w-[34rem]">
-                {/* soft brand glow behind the card */}
-                <div className="pointer-events-none absolute -inset-8 rounded-[2.5rem] bg-gradient-to-br from-indigo-400/20 via-violet-400/15 to-fuchsia-300/10 blur-3xl" />
-
-                {/* browser window mockup of the storefront */}
-                <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-indigo-500/25">
-                  {/* browser top bar with URL */}
-                  <div className="flex items-center gap-3 border-b border-slate-100 bg-slate-50/80 px-4 py-3">
-                    <div className="flex gap-1.5">
-                      <span className="h-2.5 w-2.5 rounded-full bg-rose-300" />
-                      <span className="h-2.5 w-2.5 rounded-full bg-amber-300" />
-                      <span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
-                    </div>
-                    <div className="flex flex-1 items-center gap-1.5 rounded-md bg-white px-3 py-1 text-xs font-medium text-slate-400 ring-1 ring-slate-200">
-                      <span className="h-2 w-2 rounded-full bg-emerald-400" /> yourstore.com
-                    </div>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-indigo-500 to-violet-600 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">
-                      <Wand2 className="h-3 w-3" /> AI
-                    </span>
-                  </div>
-
-                  {/* storefront images, each now labelled "Alt text added" */}
-                  <div className="space-y-3 p-4">
-                    {[0, 1, 2].map((i) => (
-                      <div
-                        key={i}
-                        className="animate-card-in flex items-center gap-3.5 rounded-xl border border-slate-100 bg-slate-50/70 p-3"
-                        style={{ animationDelay: `${i * 160}ms` }}
-                      >
-                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-100 to-violet-100 text-indigo-500">
-                          <ImagesIcon className="h-5 w-5" />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <span className={`block h-2.5 rounded-full bg-gradient-to-r from-indigo-400 to-violet-400 ${['w-4/5', 'w-3/5', 'w-3/4'][i]}`} />
-                          <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 ring-1 ring-inset ring-emerald-100">
-                            <CheckCircle2 className="h-3 w-3" /> Alt text added
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* floating sparkle badge */}
-                <span className="animate-float absolute -left-5 top-10 hidden h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-xl ring-1 ring-slate-100 sm:flex" style={{ animationDelay: '400ms' }}>
-                  <Sparkles className="h-5 w-5 text-violet-500" />
-                </span>
-
-                {/* floating coverage ring badge */}
-                <span className="absolute -right-4 -bottom-4 hidden h-16 w-16 items-center justify-center rounded-full bg-white shadow-xl ring-1 ring-slate-100 sm:flex">
-                  <svg viewBox="0 0 36 36" className="h-12 w-12 -rotate-90">
-                    <circle cx="18" cy="18" r="15" fill="none" stroke="#e2e8f0" strokeWidth="4" />
-                    <circle cx="18" cy="18" r="15" fill="none" stroke="#7c3aed" strokeWidth="4" strokeLinecap="round" strokeDasharray="72 94" />
-                  </svg>
-                  <span className="absolute text-xs font-bold text-violet-700">92%</span>
-                </span>
-              </div>
+          {/* RIGHT: dashboard preview illustration (tilt on the wrapper, gentle
+              float on the image — kept separate so the transforms don't fight) */}
+          <div className="flex justify-center lg:justify-end" aria-hidden="true">
+            <div className="[transform:perspective(1300px)_rotateY(-11deg)_rotateX(4deg)]">
+              <img
+                src={`${BASE_PATH}/hero-dashboard.png`}
+                alt=""
+                className="animate-float w-full max-w-md xl:max-w-lg rounded-xl border border-slate-200 shadow-2xl shadow-indigo-500/25"
+              />
             </div>
           </div>
         </div>
