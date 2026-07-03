@@ -24,7 +24,7 @@ const TAGLINE = {
 // Headline (AI quota) + the bullet features shown on each card.
 const HEADLINE = {
   free: '5 AI image descriptions to try',
-  starter: '1,000 AI images / month',
+  starter: '500 AI images / month',
   growth: '10,000 AI images / month',
   compliance: '50,000 AI images / month',
 };
@@ -41,7 +41,7 @@ const FEATURES = {
   free: ['Unlimited title-based alt text', 'Bulk edit using product titles', 'Scan every image type'],
   starter: ['Unlimited title-based alt text', 'Bulk AI generation & scheduling', 'Email support'],
   growth: ['Everything in Starter', 'Priority AI generation', 'For growing catalogs'],
-  compliance: ['Then $4 per extra 10,000', 'Everything in Growth', 'Highest volume & throughput'],
+  compliance: ['Then $9.99 per extra 10,000', 'Everything in Growth', 'Highest volume & throughput'],
 };
 
 export default function BillingPage() {
