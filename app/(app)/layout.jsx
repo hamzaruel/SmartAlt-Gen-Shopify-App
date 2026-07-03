@@ -58,10 +58,10 @@ export default function AppLayout({ children }) {
               © {new Date().getFullYear()} <span className="font-semibold text-slate-800">Alt Text Pro</span>. All rights reserved.
             </p>
             <div className="flex items-center gap-6 text-sm">
-              <a href="" target="_blank" rel="noopener noreferrer" className="font-medium text-slate-700 transition hover:text-indigo-600">
+              <a href="https://www.ecomback.com/alt-text-pro-privacy-policy" target="_blank" rel="noopener noreferrer" className="font-medium text-slate-700 transition hover:text-indigo-600">
                 Privacy Policy
               </a>
-              <a href="" target="_blank" rel="noopener noreferrer" className="font-medium text-slate-700 transition hover:text-indigo-600">
+              <a href="https://www.ecomback.com/alt-text-pro-terms-of-service" target="_blank" rel="noopener noreferrer" className="font-medium text-slate-700 transition hover:text-indigo-600">
                 Terms of Service
               </a>
             </div>

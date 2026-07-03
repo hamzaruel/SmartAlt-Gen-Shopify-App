@@ -21,12 +21,10 @@ import {
   CheckCircle2,
   AlertCircle,
   Trash2,
-  Zap,
   CalendarClock,
   RefreshCw,
   ListChecks,
   ArrowRight,
-  Sparkles,
 } from 'lucide-react';
 import { loadScan, patchImages, hydrateScan } from '@/lib/scanStore';
 import { authHeaders } from '@/lib/sessionToken';
@@ -210,7 +208,7 @@ export default function GeneratePage() {
 
   const [allImages, setAllImages] = useState([]);
   const [selected, setSelected] = useState(null); // no type pre-selected
-  const [showPreview, setShowPreview] = useState(false);
+  const [showPreview, setShowPreview] = useState(true); // preview open by default
   // Per-image opt-out: keys the merchant unchecked in the preview. Empty = every
   // image is selected (the default). Unchecked images are skipped when generating
   // / removing alt text, whatever the chosen method (AI, template, title, remove).
@@ -1392,30 +1390,128 @@ export default function GeneratePage() {
 
       <Divider />
 
-      {/* ===== Generate / Remove ===== */}
+      {/* ===== Generate / Schedule / Remove ===== */}
       <div>
-        {editMode === 'remove' ? (
+        <div className="flex flex-wrap items-center gap-3">
+          {editMode === 'remove' ? (
+            <button
+              onClick={clearAlt}
+              disabled={busy !== null || removeTargets.length === 0}
+              className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-rose-500/20 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:bg-rose-700 hover:shadow-lg hover:shadow-rose-500/40 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+            >
+              {busy === 'generate' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              Clear alt-text{removeTargets.length ? ` (${removeTargets.length})` : ''}
+            </button>
+          ) : (
+            <button
+              onClick={generate}
+              disabled={busy !== null || !editMode || editTargets.length === 0 || (editMode === 'template' && !activeTemplate.trim())}
+              className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-500/20 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/40 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-md"
+            >
+              <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
+              <span className="relative flex items-center gap-2">
+                {busy === 'generate' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                Generate{editTargets.length ? ` (${editTargets.length})` : ''}
+              </span>
+            </button>
+          )}
+
+          {/* Schedule bulk editing — generates AND saves alt text to Shopify automatically */}
           <button
-            onClick={clearAlt}
-            disabled={busy !== null || removeTargets.length === 0}
-            className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-rose-500/20 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:bg-rose-700 hover:shadow-lg hover:shadow-rose-500/40 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+            onClick={() => setShowSchedule((v) => !v)}
+            disabled={bulkTargets === 0 && editMode !== 'remove'}
+            className="inline-flex items-center gap-2 rounded-xl border border-indigo-300 bg-white px-5 py-2.5 text-sm font-semibold text-indigo-700 shadow-sm transition hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {busy === 'generate' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-            Clear alt-text{removeTargets.length ? ` (${removeTargets.length})` : ''}
+            <CalendarClock className="h-4 w-4" />
+            Schedule Bulk Editing
           </button>
-        ) : (
-          <button
-            onClick={generate}
-            disabled={busy !== null || !editMode || editTargets.length === 0 || (editMode === 'template' && !activeTemplate.trim())}
-            className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-500/20 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/40 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-md"
-          >
-            <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
-            <span className="relative flex items-center gap-2">
-              {busy === 'generate' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
-              Generate{editTargets.length ? ` (${editTargets.length})` : ''}
-            </span>
-          </button>
-        )}
+        </div>
+
+        {/* View all bulk edit tasks & their status */}
+        <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+          <a href={tasksHref} className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 transition hover:text-indigo-700">
+            <ListChecks className="h-4 w-4" /> View all bulk edit tasks &amp; their status
+            <ArrowRight className="h-4 w-4" />
+          </a>
+        </div>
+
+        {/* live bulk progress (scheduled / background run) */}
+        {bulkRun && (bulkRun.status === 'running' || bulkBusy) ? (
+          <div className="mt-4 rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="inline-flex items-center gap-2 font-medium text-slate-700">
+                <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />
+                {bulkRun.phase === 'scanning' ? 'Scanning your store…' : bulkRun.phase === 'applying' ? 'Saving to Shopify…' : 'Generating alt text…'}
+              </span>
+              <span className="font-semibold text-indigo-700 tabular-nums">{bulkRun.done} / {bulkRun.total || '…'}</span>
+            </div>
+            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-indigo-100">
+              <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-600 transition-all duration-300" style={{ width: `${bulkPct}%` }} />
+            </div>
+          </div>
+        ) : null}
+
+        {/* schedule sub-form */}
+        {showSchedule ? (
+          <div className="mt-4 space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <div>
+              <p className="mb-2 text-sm font-medium text-slate-700">
+                Step 1: Run <span className="font-semibold">once</span> on a future date, or repeat <span className="font-semibold">daily</span> / <span className="font-semibold">weekly</span>?
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {['once', 'daily', 'weekly'].map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => setRecurrence(r)}
+                    className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+                      recurrence === r ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    Run {REC_LABEL[r]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {recurrence === 'once' ? (
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">Date</label>
+                <input type="date" value={schedDate} onChange={(e) => setSchedDate(e.target.value)}
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+              </div>
+            ) : null}
+
+            {recurrence === 'weekly' ? (
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-slate-700">Day of week</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {WEEKDAYS.map((d, i) => (
+                    <button key={d} onClick={() => setSchedWeekday(i)}
+                      className={`h-9 w-12 rounded-lg text-sm font-medium transition ${schedWeekday === i ? 'bg-indigo-600 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100'}`}>
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                Step 2: Time of day to run <span className="font-normal text-slate-600">(your local time)</span>
+              </label>
+              <input type="time" value={schedTime} onChange={(e) => setSchedTime(e.target.value)}
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+            </div>
+
+            <button
+              onClick={createSchedule}
+              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-500/20 transition hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow-lg active:translate-y-0"
+            >
+              <CalendarClock className="h-4 w-4" />
+              Schedule Bulk Edit Task
+            </button>
+          </div>
+        ) : null}
 
         {/* live AI progress (chunked generation) */}
         {genProgress ? (
@@ -1532,136 +1628,11 @@ export default function GeneratePage() {
               className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-emerald-500/20 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:bg-emerald-700 hover:shadow-lg hover:shadow-emerald-500/40 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
             >
               {busy === 'apply' ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
-              Embed all ({generated.length})
+              Embed all alt texts ({generated.length})
             </button>
           </div>
         </section>
       ) : null}
-
-      <Divider />
-
-      {/* ===== Bulk edit (auto write-back) + scheduling ===== */}
-      <section className="animate-fade-in">
-        <SectionTitle icon={Zap} desc="Generate AND save alt text to Shopify in one go. Run it now in the background, or schedule it to run automatically.">
-          Bulk edit &amp; schedule
-        </SectionTitle>
-
-        {!selected || !editMode ? (
-          <div className="flex items-start gap-3 rounded-2xl bg-indigo-50 px-4 py-3 text-sm text-slate-600">
-            <Info className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" />
-            <p>Choose an image type and how to edit (above) to enable bulk editing.</p>
-          </div>
-        ) : (
-          <div className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            {/* live bulk progress */}
-            {bulkRun && (bulkRun.status === 'running' || bulkBusy) ? (
-              <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="inline-flex items-center gap-2 font-medium text-slate-700">
-                    <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />
-                    {bulkRun.phase === 'scanning' ? 'Scanning your store…' : bulkRun.phase === 'applying' ? 'Saving to Shopify…' : 'Generating alt text…'}
-                  </span>
-                  <span className="font-semibold text-indigo-700 tabular-nums">{bulkRun.done} / {bulkRun.total || '…'}</span>
-                </div>
-                <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-indigo-100">
-                  <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-600 transition-all duration-300" style={{ width: `${bulkPct}%` }} />
-                </div>
-              </div>
-            ) : null}
-
-            {/* actions */}
-            <div className="flex flex-wrap gap-3 border-t border-slate-100 pt-4">
-              <button
-                onClick={startBulk}
-                disabled={bulkBusy || bulkTargets === 0 || (editMode === 'template' && !activeTemplate.trim())}
-                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-500/20 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/40 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
-              >
-                {bulkBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                Start Bulk Editing
-              </button>
-              <button
-                onClick={() => setShowSchedule((v) => !v)}
-                disabled={bulkTargets === 0 && editMode !== 'remove'}
-                className="inline-flex items-center gap-2 rounded-xl border border-indigo-300 bg-white px-5 py-2.5 text-sm font-semibold text-indigo-700 shadow-sm transition hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <CalendarClock className="h-4 w-4" />
-                Schedule Bulk Editing
-              </button>
-            </div>
-
-            {/* schedule sub-form */}
-            {showSchedule ? (
-              <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div>
-                  <p className="mb-2 text-sm font-medium text-slate-700">
-                    Step 1: Run <span className="font-semibold">once</span> on a future date, or repeat <span className="font-semibold">daily</span> / <span className="font-semibold">weekly</span>?
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {['once', 'daily', 'weekly'].map((r) => (
-                      <button
-                        key={r}
-                        onClick={() => setRecurrence(r)}
-                        className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-                          recurrence === r ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100'
-                        }`}
-                      >
-                        Run {REC_LABEL[r]}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {recurrence === 'once' ? (
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Date</label>
-                    <input type="date" value={schedDate} onChange={(e) => setSchedDate(e.target.value)}
-                      className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
-                  </div>
-                ) : null}
-
-                {recurrence === 'weekly' ? (
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Day of week</label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {WEEKDAYS.map((d, i) => (
-                        <button key={d} onClick={() => setSchedWeekday(i)}
-                          className={`h-9 w-12 rounded-lg text-sm font-medium transition ${schedWeekday === i ? 'bg-indigo-600 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100'}`}>
-                          {d}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                    Step 2: Time of day to run <span className="font-normal text-slate-600">(your local time)</span>
-                  </label>
-                  <input type="time" value={schedTime} onChange={(e) => setSchedTime(e.target.value)}
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
-                </div>
-
-                <button
-                  onClick={createSchedule}
-                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-500/20 transition hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow-lg active:translate-y-0"
-                >
-                  <CalendarClock className="h-4 w-4" />
-                  Schedule Bulk Edit Task
-                </button>
-              </div>
-            ) : null}
-          </div>
-        )}
-      </section>
-
-      {/* Scheduled tasks + run history now live on the dedicated "Bulk edit tasks"
-          page — starting or scheduling a bulk edit sends the merchant there. */}
-      <div className="animate-fade-in rounded-2xl border border-slate-200 bg-white px-4 py-3">
-        <a href={tasksHref} className="inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 transition hover:text-indigo-700">
-          <ListChecks className="h-4 w-4" /> View all bulk edit tasks &amp; their status
-          <ArrowRight className="h-4 w-4" />
-        </a>
-      </div>
 
       <Divider />
 
