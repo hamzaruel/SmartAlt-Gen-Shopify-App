@@ -490,7 +490,8 @@ export default function GeneratePage() {
       return next;
     });
   const selectedCount = previewMatching.filter(isSelected).length; // selected within the previewed (type-filtered) set
-  const editTargets = matching.filter((i) => applyTo.includes(i.status) && isSelected(i)); // chosen status groups, minus unchecked
+  const checkedTargets = matching.filter((i) => applyTo.includes(i.status)); // all images in the ticked status groups
+  const editTargets = checkedTargets.filter(isSelected); // minus images unchecked in the preview
   const removeTargets = matching.filter((i) => hasAlt(i) && isSelected(i)); // for "Remove alt-text"
   const hasSuggestions = allImages.some((i) => i.suggestedAlt && (selected === 'all' || i.source === selected));
 
@@ -1185,6 +1186,15 @@ export default function GeneratePage() {
                   </div>
 
                   <p className="mt-3 text-sm text-slate-600">{applyStatusNode}</p>
+                  {checkedTargets.length > 0 ? (
+                    <p className="mt-3 inline-flex flex-wrap items-center gap-1.5 rounded-xl bg-indigo-50 px-3.5 py-2 text-sm font-medium text-indigo-700 ring-1 ring-indigo-100">
+                      <CheckCircle2 className="h-4 w-4 shrink-0" />
+                      <span><span className="font-bold tabular-nums">{editTargets.length}</span> of <span className="font-bold tabular-nums">{checkedTargets.length}</span> selected to generate</span>
+                      {editTargets.length < checkedTargets.length ? (
+                        <span className="font-normal text-indigo-500">· change the selection in the preview above</span>
+                      ) : null}
+                    </p>
+                  ) : null}
                 </>
               ) : (
                 <p className="text-sm text-slate-600">Select an image type first.</p>
