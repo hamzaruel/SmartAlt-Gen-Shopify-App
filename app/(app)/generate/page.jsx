@@ -25,7 +25,6 @@ import {
   RefreshCw,
   ListChecks,
   ArrowRight,
-  Sparkles,
 } from 'lucide-react';
 import { loadScan, patchImages, hydrateScan } from '@/lib/scanStore';
 import { authHeaders } from '@/lib/sessionToken';
@@ -865,42 +864,20 @@ export default function GeneratePage() {
 
   return (
     <div className="space-y-6">
-      <header className="animate-card-in relative overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-br from-violet-50 via-white to-indigo-50/60 p-6 shadow-sm sm:p-7">
-        {/* decorative glow */}
-        <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-violet-200/30 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-24 left-1/4 h-52 w-52 rounded-full bg-fuchsia-200/25 blur-3xl" />
-
-        <div className="relative flex items-center justify-between gap-8">
-          <div>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-violet-600 shadow-sm ring-1 ring-violet-100">
-              <Sparkles className="h-3.5 w-3.5" /> AI generation &amp; smart templates
-            </span>
-            <div className="mt-3 flex items-center gap-3">
-              <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-violet-500/30 ring-1 ring-inset ring-white/25">
-                <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-white/20" />
-                <Wand2 className="relative h-5 w-5" strokeWidth={1.75} />
-              </span>
-              <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
-                Generate &amp; embed{' '}
-                <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">alt text</span>
-              </h1>
-            </div>
-            <p className="mt-2.5 max-w-xl text-base leading-relaxed text-slate-600">
-              Pick a type of image, choose how to write the text with{' '}
-              <span className="font-semibold text-violet-600">AI</span> or a{' '}
-              <span className="font-semibold text-violet-600">template</span>, then{' '}
-              <span className="font-semibold text-indigo-600">generate</span> it and{' '}
-              <span className="font-semibold text-indigo-600">save it straight to Shopify</span>.
-            </p>
-          </div>
-
-          {/* section illustration (soft float, matches the Image audit hero) */}
-          <img
-            src={`${BASE_PATH}/studio-illustration.png`}
-            alt=""
-            aria-hidden="true"
-            className="animate-float -my-2 hidden w-96 shrink-0 lg:block xl:w-[28rem]"
-          />
+      <header className="animate-card-in flex items-center gap-3">
+        <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-violet-500/30 ring-1 ring-inset ring-white/25">
+          <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-white/20" />
+          <Wand2 className="relative h-5 w-5" strokeWidth={1.75} />
+        </span>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            Generate &amp; embed{' '}
+            <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">alt text</span>
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Write alt text with <span className="font-semibold text-violet-600">AI</span> or a{' '}
+            <span className="font-semibold text-violet-600">template</span>, then save it straight to Shopify.
+          </p>
         </div>
       </header>
 
