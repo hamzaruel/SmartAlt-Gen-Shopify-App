@@ -124,10 +124,10 @@ function FilterDropdown({ icon: TriggerIcon, label, value, options, onChange }) 
         onClick={() => setOpen((o) => !o)}
         className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm shadow-sm transition hover:border-slate-300 hover:shadow"
       >
-        {TriggerIcon ? <TriggerIcon className="h-4 w-4 text-slate-400" /> : null}
-        <span className="text-slate-500">{label}:</span>
+        {TriggerIcon ? <TriggerIcon className="h-4 w-4 text-slate-500" /> : null}
+        <span className="text-slate-600">{label}:</span>
         <span className="font-semibold text-slate-800">{current?.label}</span>
-        <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`h-4 w-4 text-slate-500 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
       {open ? (
         <div className="absolute right-0 z-20 mt-2 w-56 origin-top-right rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
@@ -145,7 +145,7 @@ function FilterDropdown({ icon: TriggerIcon, label, value, options, onChange }) 
                   {o.Icon ? <o.Icon className="h-4 w-4" /> : null}
                   {o.label}
                 </span>
-                {o.count != null ? <span className="text-xs tabular-nums text-slate-400">{o.count}</span> : null}
+                {o.count != null ? <span className="text-xs tabular-nums text-slate-500">{o.count}</span> : null}
               </button>
             );
           })}
@@ -167,7 +167,7 @@ function AltDisplay({ img }) {
   if (img.status === 'NEEDS_IMPROVEMENT') {
     return (
       <div className="mt-2 space-y-1.5">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Current alt</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Current alt</p>
         <p className="rounded-lg bg-slate-50 px-3 py-1.5 text-sm text-slate-700 ring-1 ring-slate-100">
           {img.currentAlt}
         </p>
@@ -183,7 +183,7 @@ function AltDisplay({ img }) {
   }
   return (
     <div className="mt-2">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Current alt</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Current alt</p>
       <div className="mt-1 flex items-start gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-sm text-emerald-800 ring-1 ring-emerald-100">
         <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
         <span>{img.currentAlt}</span>
@@ -249,9 +249,8 @@ export default function ImagesPage() {
               <Sparkles className="h-3.5 w-3.5" /> Alt text coverage report
             </span>
             <div className="mt-3 flex items-center gap-3">
-              <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/30 ring-1 ring-inset ring-white/25">
-                <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-white/20" />
-                <ImagesIcon className="relative h-5 w-5" strokeWidth={1.75} />
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-50 to-violet-50 text-indigo-600 ring-1 ring-inset ring-indigo-100">
+                <ImagesIcon className="h-5 w-5" strokeWidth={1.75} />
               </span>
               <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">All store images</h1>
             </div>
@@ -271,7 +270,7 @@ export default function ImagesPage() {
                   <span className="h-2 w-2 rounded-full bg-slate-200" />
                   <span className="h-2 w-2 rounded-full bg-slate-200" />
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Alt text</span>
+                <span className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Alt text</span>
               </div>
               <div className="space-y-2.5">
                 {[
@@ -337,7 +336,7 @@ export default function ImagesPage() {
               {tab !== 'ALL' || source !== 'all' ? ' match your filters' : ' in your store'}
             </p>
             <div className="flex items-center gap-2">
-              <span className="hidden text-sm text-slate-500 sm:inline">Show by alt text status</span>
+              <span className="hidden text-sm text-slate-600 sm:inline">Show by alt text status</span>
               <FilterDropdown
                 icon={SlidersHorizontal}
                 label="Status"
@@ -364,7 +363,7 @@ export default function ImagesPage() {
                 No {tab !== 'ALL' ? (TABS.find((t) => t.id === tab)?.label.toLowerCase() + ' ') : ''}images
                 {source !== 'all' ? ` in ${SOURCE_FILTERS.find((s) => s.id === source)?.label}` : ''}
               </p>
-              <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500">
+              <p className="mx-auto mt-1 max-w-sm text-sm text-slate-600">
                 {tab === 'MISSING' || tab === 'NEEDS_IMPROVEMENT'
                   ? 'Nothing needs attention here. Try another source or status filter.'
                   : 'Nothing matches the current filters. Try a different source or status.'}
@@ -403,7 +402,7 @@ export default function ImagesPage() {
                           {/* Name / Filename */}
                           <td className="px-5 py-5">
                             <p className="text-sm font-semibold text-slate-800">{img.title || 'Untitled'}</p>
-                            <p className="mt-1 max-w-[200px] truncate text-xs text-slate-400">{fileName(img.url)}</p>
+                            <p className="mt-1 max-w-[200px] truncate text-xs text-slate-500">{fileName(img.url)}</p>
                           </td>
                           {/* Source */}
                           <td className="px-5 py-5">
@@ -422,7 +421,7 @@ export default function ImagesPage() {
                           {/* Status */}
                           <td className="px-5 py-5"><StatusBadge status={img.status} /></td>
                           {/* Updated */}
-                          <td className="whitespace-nowrap px-5 py-5 text-sm font-medium text-slate-500">
+                          <td className="whitespace-nowrap px-5 py-5 text-sm font-medium text-slate-600">
                             {img.updatedAt ? relativeTime(new Date(img.updatedAt).getTime()) : 'Unknown'}
                           </td>
                         </tr>
@@ -491,7 +490,7 @@ function EmptyState({ shop }) {
   const qs = shop ? `?shop=${encodeURIComponent(shop)}` : '';
   return (
     <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
-      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-600">
         <ImageOff className="h-6 w-6" />
       </div>
       <h3 className="mt-4 text-base font-semibold text-slate-800">No images yet</h3>

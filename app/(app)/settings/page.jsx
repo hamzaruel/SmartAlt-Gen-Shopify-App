@@ -114,9 +114,8 @@ export default function SettingsPage() {
             <SlidersHorizontal className="h-3.5 w-3.5" /> Scan &amp; AI defaults
           </span>
           <div className="mt-3 flex items-center gap-3">
-            <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-violet-500/30 ring-1 ring-inset ring-white/25">
-              <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-white/20" />
-              <SlidersHorizontal className="relative h-5 w-5" strokeWidth={1.75} />
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-50 to-violet-50 text-indigo-600 ring-1 ring-inset ring-indigo-100">
+              <SlidersHorizontal className="h-5 w-5" strokeWidth={1.75} />
             </span>
             <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
               Your{' '}
@@ -154,7 +153,7 @@ export default function SettingsPage() {
                 }`}
               >
                 <span className="flex items-center gap-2.5 text-sm font-medium text-slate-700">
-                  <span className={`flex h-8 w-8 items-center justify-center rounded-lg ring-1 ring-inset ${on ? 'bg-white text-indigo-600 ring-indigo-100' : 'bg-slate-50 text-slate-500 ring-slate-100'}`}>
+                  <span className={`flex h-8 w-8 items-center justify-center rounded-lg ring-1 ring-inset ${on ? 'bg-white text-indigo-600 ring-indigo-100' : 'bg-slate-50 text-slate-600 ring-slate-100'}`}>
                     <Icon className="h-4 w-4" />
                   </span>
                   {label}
@@ -190,10 +189,10 @@ export default function SettingsPage() {
                 <option key={l} value={l}>{l}</option>
               ))}
             </select>
-            <p className="mt-1.5 text-xs text-slate-500">AI will write alt text in this language.</p>
+            <p className="mt-1.5 text-xs text-slate-600">AI will write alt text in this language.</p>
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">Extra instructions <span className="font-normal text-slate-500">(optional)</span></label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Extra instructions <span className="font-normal text-slate-600">(optional)</span></label>
             <textarea
               value={aiInstructions}
               onChange={(e) => { setSaved(false); setAiInstructions(e.target.value); }}
@@ -254,7 +253,7 @@ export default function SettingsPage() {
             <CheckCircle2 className="h-4 w-4" /> Saved
           </span>
         ) : (
-          <span className="text-sm text-slate-500">Changes apply to your next scan and generation.</span>
+          <span className="text-sm text-slate-600">Changes apply to your next scan and generation.</span>
         )}
       </div>
     </div>

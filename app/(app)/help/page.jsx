@@ -84,9 +84,8 @@ export default function HelpPage() {
             <LifeBuoy className="h-3.5 w-3.5" /> Help &amp; support
           </span>
           <div className="mt-3 flex items-center gap-3">
-            <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-violet-500/30 ring-1 ring-inset ring-white/25">
-              <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-white/20" />
-              <LifeBuoy className="relative h-5 w-5" strokeWidth={1.75} />
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-50 to-violet-50 text-indigo-600 ring-1 ring-inset ring-indigo-100">
+              <LifeBuoy className="h-5 w-5" strokeWidth={1.75} />
             </span>
             <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
               How can we{' '}

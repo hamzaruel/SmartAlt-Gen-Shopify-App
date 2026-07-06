@@ -248,17 +248,17 @@ export default function DashboardPage() {
                 <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
                 <span className="relative flex items-center gap-2.5">
                   {scanning ? <Search className="h-5 w-5 animate-scan" /> : <ScanLine className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />}
-                  {scanning ? 'Scanning your store…' : 'Scan now'}
+                  {scanning ? 'Scanning your store…' : 'Scan My Store'}
                 </span>
               </button>
 
               {scanning ? (
-                <p className="text-sm text-slate-500">This can take a moment on large stores.</p>
+                <p className="text-sm text-slate-600">This can take a moment on large stores.</p>
               ) : scannedAt ? (
                 <p className="text-sm font-semibold text-slate-700">Last scanned {new Date(scannedAt).toLocaleString()}</p>
               ) : (
-                <p className="max-w-sm text-sm text-slate-500">
-                  Press <span className="font-semibold text-slate-700">Scan now</span> to check every image across your whole store, products, files and blog posts.
+                <p className="max-w-sm text-sm text-slate-600">
+                  Press <span className="font-semibold text-slate-700">Scan your store</span> to check every image across your products, files and blog posts.
                 </p>
               )}
             </div>
@@ -281,7 +281,7 @@ export default function DashboardPage() {
                       <span className="h-2.5 w-2.5 rounded-full bg-amber-300" />
                       <span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
                     </div>
-                    <div className="flex flex-1 items-center gap-1.5 rounded-md bg-white px-3 py-1 text-xs font-medium text-slate-400 ring-1 ring-slate-200">
+                    <div className="flex flex-1 items-center gap-1.5 rounded-md bg-white px-3 py-1 text-xs font-medium text-slate-500 ring-1 ring-slate-200">
                       <span className="h-2 w-2 rounded-full bg-emerald-400" /> yourstore.com
                     </div>
                     <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-indigo-500 to-violet-600 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">
@@ -358,19 +358,19 @@ export default function DashboardPage() {
             </div>
 
             <h3 className="mt-6 text-base font-semibold text-slate-900">Scanning your store…</h3>
-            <p className="mt-1.5 text-sm text-slate-500">Finding every image across products, collections, blogs and files.</p>
+            <p className="mt-1.5 text-sm text-slate-600">Finding every image across products, collections, blogs and files.</p>
 
             {/* live count — soft */}
             <div className="mt-6 flex items-baseline gap-1.5">
               <span className="text-3xl font-bold text-slate-900 tabular-nums">{scanCount.toLocaleString()}</span>
-              <span className="text-sm text-slate-500">images found so far</span>
+              <span className="text-sm text-slate-600">images found so far</span>
             </div>
 
             {/* indeterminate sweeping bar (total isn't known until the scan finishes) */}
             <div className="mt-6 h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-slate-100">
               <div className="h-full w-1/3 rounded-full bg-indigo-500/80 animate-scanbar" />
             </div>
-            <p className="mt-4 text-xs text-slate-500">This can take a moment on large stores. Please keep this tab open.</p>
+            <p className="mt-4 text-xs text-slate-600">This can take a moment on large stores. Please keep this tab open.</p>
           </div>
         </section>
       ) : null}
@@ -382,7 +382,7 @@ export default function DashboardPage() {
             {/* header */}
             <div className="mb-6">
               <h2 className="text-lg font-semibold text-slate-900">My store overview</h2>
-              <p className="mt-1 text-sm text-slate-500">Alt text coverage across your whole store</p>
+              <p className="mt-1 text-sm text-slate-600">Alt text coverage across your whole store</p>
             </div>
 
             {/* KPI row — soft blended icon chip overlapping the top border */}
@@ -398,7 +398,7 @@ export default function DashboardPage() {
                   <span className={`absolute -top-4 left-5 flex h-11 w-11 items-center justify-center rounded-xl ring-1 ring-inset ${chip}`}>
                     <Icon className="h-5 w-5" strokeWidth={1.75} />
                   </span>
-                  <div className="text-sm font-medium text-slate-500">{label}</div>
+                  <div className="text-sm font-medium text-slate-600">{label}</div>
                   <div className="mt-1 text-2xl font-bold tracking-tight text-slate-900 tabular-nums">{value.toLocaleString()}</div>
                 </div>
               ))}
@@ -409,7 +409,7 @@ export default function DashboardPage() {
               {/* Coverage card */}
               <div className="animate-card-in rounded-xl bg-slate-50 p-6 ring-1 ring-slate-100 sm:p-7 lg:col-span-3" style={{ animationDelay: '120ms' }}>
                 <h3 className="text-base font-semibold text-slate-900">Alt text coverage</h3>
-                <p className="mt-0.5 text-sm text-slate-500">How much of your store is described</p>
+                <p className="mt-0.5 text-sm text-slate-600">How much of your store is described</p>
 
                 {/* water-fill coverage circle with floating stat badges */}
                 <div className="relative mx-auto mt-8 mb-2 h-52 w-52">
@@ -433,7 +433,7 @@ export default function DashboardPage() {
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
                       <div className="flex flex-col items-center rounded-2xl bg-white/70 px-5 py-2 shadow-sm backdrop-blur-[2px]">
                         <span className="text-4xl font-bold tracking-tight text-violet-700 tabular-nums">{Math.round(animCoverage)}%</span>
-                        <span className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-slate-500">covered</span>
+                        <span className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-slate-600">covered</span>
                       </div>
                     </div>
                   </div>
@@ -466,7 +466,7 @@ export default function DashboardPage() {
                             </span>
                             {label}
                           </span>
-                          <span className="text-sm text-slate-500 tabular-nums">
+                          <span className="text-sm text-slate-600 tabular-nums">
                             <span className="font-bold text-slate-900">{value.toLocaleString()}</span> {value === 1 ? 'image' : 'images'}
                           </span>
                         </div>
@@ -474,7 +474,7 @@ export default function DashboardPage() {
                           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
                             <div className={`h-full rounded-full ${bar} transition-[width] duration-700 ease-out`} style={{ width: `${pct}%` }} />
                           </div>
-                          <span className="w-9 text-right text-xs font-semibold text-slate-400 tabular-nums">{pct}%</span>
+                          <span className="w-9 text-right text-xs font-semibold text-slate-500 tabular-nums">{pct}%</span>
                         </div>
                       </div>
                     );
@@ -486,7 +486,7 @@ export default function DashboardPage() {
               <div className="animate-card-in flex flex-col rounded-xl bg-slate-50 p-6 ring-1 ring-slate-100 lg:col-span-2" style={{ animationDelay: '200ms' }}>
                 <div className="mb-1 flex items-center justify-between">
                   <h3 className="text-base font-semibold text-slate-900">Recent activity</h3>
-                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-slate-400 ring-1 ring-slate-100">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-slate-500 ring-1 ring-slate-100">
                     <Clock className="h-4 w-4" />
                   </span>
                 </div>
@@ -507,7 +507,7 @@ export default function DashboardPage() {
                             <p className="truncate text-sm font-semibold leading-snug text-slate-800">{meta.text(a)}</p>
                             <div className="mt-1 flex items-center gap-2">
                               <span className={`inline-block rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${meta.chip}`}>{meta.tag}</span>
-                              <span className="text-xs font-medium text-slate-400">{relativeTime(a.ts)}</span>
+                              <span className="text-xs font-medium text-slate-500">{relativeTime(a.ts)}</span>
                             </div>
                           </div>
                         </li>
@@ -519,8 +519,8 @@ export default function DashboardPage() {
                     <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white ring-1 ring-slate-100">
                       <Clock className="h-6 w-6 text-slate-300" />
                     </span>
-                    <p className="mt-3 text-sm font-medium text-slate-500">No activity yet</p>
-                    <p className="mt-0.5 text-xs text-slate-400">Scan, generate or embed to see it here.</p>
+                    <p className="mt-3 text-sm font-medium text-slate-600">No activity yet</p>
+                    <p className="mt-0.5 text-xs text-slate-500">Scan, generate or embed to see it here.</p>
                   </div>
                 )}
               </div>
@@ -547,12 +547,12 @@ export default function DashboardPage() {
       ) : null}
 
       {/* ===== How it works (white card) ===== */}
-      <section className="rounded-xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-9">
-        <div className="mb-7">
+      <section className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
+        <div className="mb-5">
           <h2 className="text-lg font-semibold text-slate-900">How it works</h2>
-          <p className="mt-1 text-sm text-slate-500">From scan to embed in four simple steps</p>
+          <p className="mt-1 text-sm text-slate-600">From scan to embed in four simple steps</p>
         </div>
-        <div className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-x-6 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
           {STEPS.map(({ title, text, icon: Icon }, i) => (
             <div key={title} className="group">
               {/* soft, uniform brand-tinted icon chip with a subtle step number */}
@@ -561,7 +561,7 @@ export default function DashboardPage() {
                 <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-white text-[11px] font-bold text-indigo-600 shadow-sm ring-1 ring-slate-100">{i + 1}</span>
               </span>
               <h3 className="mt-4 text-base font-semibold text-slate-900">{title}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-slate-500">{text}</p>
+              <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{text}</p>
             </div>
           ))}
         </div>

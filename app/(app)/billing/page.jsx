@@ -112,13 +112,13 @@ export default function BillingPage() {
             <span className="font-medium text-slate-700">
               <span className="font-semibold text-indigo-700">{status.planName}</span> · {used.toLocaleString()} of {quota.toLocaleString()} AI images used this cycle
             </span>
-            <span className="font-semibold text-slate-500 tabular-nums">{pct}%</span>
+            <span className="font-semibold text-slate-600 tabular-nums">{pct}%</span>
           </div>
           <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-100">
             <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500" style={{ width: `${pct}%` }} />
           </div>
           {status.overflow && used > quota ? (
-            <p className="mt-2 text-xs text-slate-500">
+            <p className="mt-2 text-xs text-slate-600">
               {status.overflowBlocks} overflow block{status.overflowBlocks === 1 ? '' : 's'} billed (${(status.overflowBlocks * status.overflow.blockPrice).toFixed(2)}).
             </p>
           ) : null}
@@ -152,7 +152,7 @@ export default function BillingPage() {
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <h3 className="text-lg font-semibold text-slate-900">{p.name}</h3>
-                  <p className="mt-0.5 text-xs font-medium text-slate-500">{TAGLINE[id]}</p>
+                  <p className="mt-0.5 text-xs font-medium text-slate-600">{TAGLINE[id]}</p>
                 </div>
                 {isCurrent ? (
                   <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 ring-1 ring-emerald-100">Current</span>
@@ -162,7 +162,7 @@ export default function BillingPage() {
               {/* price */}
               <div className="mt-4 flex items-baseline gap-1">
                 <span className="text-3xl font-bold tracking-tight text-slate-900">{priceLabel(p)}</span>
-                <span className="text-sm font-medium text-slate-500">/mo</span>
+                <span className="text-sm font-medium text-slate-600">/mo</span>
               </div>
 
               {/* headline feature */}
@@ -192,7 +192,7 @@ export default function BillingPage() {
                     <Check className="h-4 w-4" /> Current plan
                   </div>
                 ) : id === 'free' ? (
-                  <div className="inline-flex w-full items-center justify-center rounded-xl bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-500 ring-1 ring-inset ring-slate-100">
+                  <div className="inline-flex w-full items-center justify-center rounded-xl bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-600 ring-1 ring-inset ring-slate-100">
                     Included free
                   </div>
                 ) : (

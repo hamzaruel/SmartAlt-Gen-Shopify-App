@@ -877,9 +877,8 @@ export default function GeneratePage() {
               <Sparkles className="h-3.5 w-3.5" /> AI generation &amp; smart templates
             </span>
             <div className="mt-3 flex items-center gap-3">
-              <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-violet-500/30 ring-1 ring-inset ring-white/25">
-                <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-white/20" />
-                <Wand2 className="relative h-5 w-5" strokeWidth={1.75} />
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-50 to-violet-50 text-indigo-600 ring-1 ring-inset ring-indigo-100">
+                <Wand2 className="h-5 w-5" strokeWidth={1.75} />
               </span>
               <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
                 Generate &amp; embed{' '}
@@ -919,18 +918,10 @@ export default function GeneratePage() {
                       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-indigo-100 to-violet-100 text-indigo-500">
                         <ImagesIcon className="h-4 w-4" />
                       </span>
-                      <div className="min-w-0 flex-1 space-y-1.5">
-                        <span className={`block h-2 rounded-full bg-gradient-to-r from-indigo-400 to-violet-400 ${['w-3/4', 'w-5/6', 'w-2/3'][i]}`} />
-                        <span className="block h-2 w-1/2 rounded-full bg-slate-200" />
-                      </div>
+                      <span className={`h-2 flex-1 rounded-full bg-gradient-to-r from-indigo-400 to-violet-400 ${['w-3/4', 'w-5/6', 'w-2/3'][i]}`} />
                       <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
                     </div>
                   ))}
-                </div>
-
-                {/* embed action bar */}
-                <div className="mt-3 flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 py-2 text-xs font-bold text-white shadow-sm">
-                  <UploadCloud className="h-3.5 w-3.5" /> Embed to Shopify
                 </div>
               </div>
 
@@ -1052,9 +1043,9 @@ export default function GeneratePage() {
                     <div className="flex flex-wrap items-center gap-2.5">
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200">
                         <span className="tabular-nums text-indigo-700">{selectedCount}</span>
-                        <span className="text-slate-400">/</span>
+                        <span className="text-slate-500">/</span>
                         <span className="tabular-nums">{previewMatching.length}</span>
-                        <span className="font-medium text-slate-500">selected{collectionFilter ? ` in ${collectionFilter}` : ''}</span>
+                        <span className="font-medium text-slate-600">selected{collectionFilter ? ` in ${collectionFilter}` : ''}</span>
                       </span>
                       <button
                         onClick={() =>
@@ -1077,7 +1068,7 @@ export default function GeneratePage() {
 
                     {selected === 'product' && productCollections.length > 1 ? (
                       <div className="flex flex-wrap items-center gap-2 text-sm">
-                        <span className="font-medium text-slate-500">Filter by collection</span>
+                        <span className="font-medium text-slate-600">Filter by collection</span>
                         <select
                           value={collectionFilter}
                           onChange={(e) => { setCollectionFilter(e.target.value); setPage(0); }}
@@ -1118,7 +1109,7 @@ export default function GeneratePage() {
                         <div className="relative">
                           {/* Per-image select toggle. Clicking the image (or the badge) flips it. */}
                           <label className={`absolute left-2.5 top-2.5 z-10 flex cursor-pointer items-center gap-1.5 rounded-full py-1 pl-1.5 pr-2.5 text-xs font-semibold shadow-sm ring-1 backdrop-blur transition ${
-                            sel ? 'bg-white/95 text-indigo-700 ring-indigo-200' : 'bg-white/95 text-slate-500 ring-slate-200'
+                            sel ? 'bg-white/95 text-indigo-700 ring-indigo-200' : 'bg-white/95 text-slate-600 ring-slate-200'
                           }`}>
                             <input
                               type="checkbox"
@@ -1180,7 +1171,7 @@ export default function GeneratePage() {
                   </div>
 
                   {totalPages > 1 ? (
-                    <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/70 px-4 py-3 text-sm text-slate-500">
+                    <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/70 px-4 py-3 text-sm text-slate-600">
                       <span>Showing {pageSafe * PAGE_SIZE + 1}–{Math.min((pageSafe + 1) * PAGE_SIZE, previewMatching.length)} of {previewMatching.length}</span>
                       <Pager page={pageSafe} totalPages={totalPages}
                         onPrev={() => setPage((p) => Math.max(0, p - 1))}
@@ -1223,7 +1214,7 @@ export default function GeneratePage() {
                           key={id}
                           className={`inline-flex items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-sm transition ${
                             disabled
-                              ? 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400'
+                              ? 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-500'
                               : on
                                 ? 'cursor-pointer border-indigo-300 bg-indigo-50 text-slate-800 ring-1 ring-indigo-200'
                                 : 'cursor-pointer border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
@@ -1301,7 +1292,7 @@ export default function GeneratePage() {
                     <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                       <p className="text-xs font-bold uppercase tracking-wider">
                         <span className="text-indigo-600">{entitlement.planName} plan</span>
-                        <span className="text-slate-400"> · AI alt text</span>
+                        <span className="text-slate-500"> · AI alt text</span>
                       </p>
                       <p className="mt-1.5 text-sm font-semibold text-slate-800">Unlimited AI alt text on this plan.</p>
                     </div>
@@ -1313,11 +1304,11 @@ export default function GeneratePage() {
                       <div className="min-w-0">
                         <p className="text-xs font-bold uppercase tracking-wider">
                           <span className="text-indigo-600">{entitlement.planName} plan</span>
-                          <span className="text-slate-400"> · AI alt text</span>
+                          <span className="text-slate-500"> · AI alt text</span>
                         </p>
                         <p className="mt-1.5 text-sm font-medium text-slate-700">
                           <span className="text-xl font-extrabold tabular-nums text-slate-900">{used.toLocaleString()}</span>
-                          <span className="text-slate-500"> / {quota.toLocaleString()}</span> AI images used this cycle
+                          <span className="text-slate-600"> / {quota.toLocaleString()}</span> AI images used this cycle
                         </p>
                       </div>
                       <a href={`${BASE_PATH}/billing${billingQs}`} className="shrink-0 rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700 transition hover:bg-indigo-100">
@@ -1354,7 +1345,7 @@ export default function GeneratePage() {
                         <div className="min-w-0 flex-1 py-2.5">
                           <code className="block text-sm text-slate-700">{t}</code>
                           {example ? (
-                            <p className="mt-1 truncate text-xs text-slate-500">
+                            <p className="mt-1 truncate text-xs text-slate-600">
                               e.g. <span className="font-medium text-indigo-600">“{example}”</span>
                             </p>
                           ) : null}
@@ -1388,7 +1379,7 @@ export default function GeneratePage() {
                           <span className="h-12 w-14 shrink-0 overflow-hidden rounded-md border border-slate-200 bg-white">
                             <img src={sampleItems[0].url} alt="" aria-hidden="true" className="h-full w-full object-contain p-1" />
                           </span>
-                          <p className="min-w-0 flex-1 truncate text-xs text-slate-500">
+                          <p className="min-w-0 flex-1 truncate text-xs text-slate-600">
                             e.g. <span className="font-medium text-indigo-600">“{applyTemplate(customTemplate, sampleItems[0])}”</span>
                           </p>
                         </div>
